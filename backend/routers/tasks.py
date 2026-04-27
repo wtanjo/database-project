@@ -31,7 +31,7 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
     try:
         subprocess.Popen(
             [
-                "scrapy", "crawl", "general_spider",
+                "scrapy", "crawl", "crwaler",
                 "-a", f"start_url={target_url}",
                 "-a", f"task_id={task_id}"
             ],
