@@ -4,7 +4,7 @@ from datetime import datetime
 from backend.crawler.crawler.items import WebpageMetaItem, ContentItem, ImageItem
 
 class GeneralSpider(scrapy.Spider):
-    name = 'general'
+    name = 'srawler'
     
     def __init__(self, start_url=None, task_id=None, *args, **kwargs):
         super(GeneralSpider, self).__init__(*args, **kwargs)
