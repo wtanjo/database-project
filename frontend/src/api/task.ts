@@ -1,15 +1,17 @@
-import service from './request'; // 引入你截图中的 axios 实例
+import axios from 'axios'
 
-// 定义请求参数的接口
-interface CreateTaskData {
-  url: string;
+// 创建 axios 实例
+const service = axios.create({
+  baseURL: '', // 走代理
+  timeout: 5000
+})
+
+// 1. 提交爬取任务
+export function createTask(url: string) {
+  return service.post('/api/tasks', { url })
 }
 
-// 封装调用函数
-export function createTask(data: CreateTaskData) {
-  return service({
-    url: '/tasks', // 注意：baseURL 已经是 /api 了，这里只需写 /tasks
-    method: 'post',
-    data: data // 对应后端的 url_data
-  });
+// 2. 获取爬取结果 (对应 A 的 contents.py)
+export function getContents() {
+  return service.get('/api/contents')
 }
