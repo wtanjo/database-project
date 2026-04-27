@@ -1,4 +1,4 @@
-mac local ip: 192.168.3.84
+mac local ip: 172.20.10.13
 
 **MySQL (SQLAlchemy/Scrapy)**:
 
