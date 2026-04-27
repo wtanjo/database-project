@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from crawler.crawler.settings import MYSQL_SETTINGS as ms
 
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:root123@192.168.3.84:3306/crawler_db?charset=utf8mb4"
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{ms['user']}:{ms['password']}@{ms['host']}:{ms['port']}/{ms['db']}?{ms['charset']}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 
