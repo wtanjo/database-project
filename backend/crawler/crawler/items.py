@@ -21,3 +21,9 @@ class ImageItem(scrapy.Item):
     image_url = scrapy.Field()
     description = scrapy.Field()
     crawl_time = scrapy.Field()
+
+class TaskErrorItem(scrapy.Item):
+    """专门用于传递爬取过程中的错误信息"""
+    task_id = scrapy.Field()
+    error_msg = scrapy.Field()
+    status = scrapy.Field()  # 通常为 'FAILED'
