@@ -1,7 +1,7 @@
 import scrapy
 from urllib.parse import urlparse
 from datetime import datetime
-from backend.crawler.crawler.items import WebpageMetaItem, ContentItem, ImageItem
+from crawler.items import WebpageMetaItem, ContentItem, ImageItem, TaskErrorItem
 
 class GeneralSpider(scrapy.Spider):
     name = 'crawler'

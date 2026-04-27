@@ -12,7 +12,7 @@ class Status(str, enum.Enum):
 class CrawlTask(Base):
     __tablename__ = "CrawlTask"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, index=Trueb)
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     target_url = Column(String(2048), nullable=False)
     status = Column(sqlalchemy.Enum(Status), default=Status.PENDING, nullable=False)
     created_at = Column(DateTime, default=datetime.now)

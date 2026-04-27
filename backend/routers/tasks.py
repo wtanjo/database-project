@@ -32,7 +32,7 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
         subprocess.Popen(
             [
                 "scrapy", "crawl", "crawler",
-                "-a", f"start_url={new_task.targer_url}",
+                "-a", f"start_url={new_task.target_url}",
                 "-a", f"task_id={new_task.id}"
             ],
             cwd=crawler_cwd

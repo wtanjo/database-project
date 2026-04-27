@@ -8,7 +8,7 @@ async def list_contents():
     cursor = contents_collection.find({}).sort("_id", -1).limit(50)
     
     results = []
-    async for doc in cursor:
+    for doc in cursor:
         doc["_id"] = str(doc["_id"])
         results.append(doc)
     

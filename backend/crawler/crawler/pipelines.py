@@ -2,7 +2,7 @@ import pymysql
 import pymongo
 from datetime import datetime
 # 记得导入新 Item
-from backend.crawler.crawler.items import WebpageMetaItem, ContentItem, ImageItem, TaskErrorItem
+from crawler.items import WebpageMetaItem, ContentItem, ImageItem, TaskErrorItem
 
 class DatabasePipeline:
     def __init__(self, mysql_cfg, mongo_cfg):

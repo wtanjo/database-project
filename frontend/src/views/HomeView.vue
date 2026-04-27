@@ -19,9 +19,9 @@
     <!-- 结果展示区 -->
     <el-table :data="tableData" border style="width: 100%; margin-top: 20px" v-loading="tableLoading">
       <el-table-column prop="_id" label="ID" width="220" />
-      <el-table-column prop="url" label="来源 URL" width="250" show-overflow-tooltip />
+      <el-table-column prop="webpage_url" label="来源 URL" width="250" show-overflow-tooltip />
       <el-table-column prop="title" label="网页标题" width="200" />
-      <el-table-column prop="text" label="正文预览" show-overflow-tooltip />
+      <el-table-column prop="text_content" label="正文预览" show-overflow-tooltip />
     </el-table>
   </div>
 </template>

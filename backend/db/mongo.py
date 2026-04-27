@@ -1,8 +1,6 @@
 from pymongo import MongoClient
-from crawler.crawler.settings import MYSQL_SETTINGS as ms
-
-MONGO_URL = f"mongodb://{ms['host']}:{ms['port']}/"
-
+from crawler.crawler.settings import MONGO_SETTINGS as ms
+MONGO_URL = ms['uri']
 client = MongoClient(MONGO_URL)
 
 db = client["crawler_db"]
