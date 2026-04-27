@@ -20,10 +20,10 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
     if not url:
         raise HTTPException(status_code=400, detail="URL cannot be empty.")
 
-    new_task = CrawlTask(target_url=url, status="pending", id=100)
+    new_task = CrawlTask(target_url=url, status="pending")
     db.add(new_task)
-    # db.commit()
-    # db.refresh(new_task)
+    db.commit()
+    db.refresh(new_task)
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
     crawler_cwd = os.path.join(current_dir, "../crawler")

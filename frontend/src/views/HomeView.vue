@@ -50,8 +50,10 @@ const handleStartCrawl = async () => {
       // 延迟3秒后自动刷新一次列表
       setTimeout(fetchData, 3000)
     }
-  } catch (error) {
-    ElMessage.error('触发失败，检查后端连接')
+  } catch (error: any) {
+    const msg = error?.response?.data?.detail || error?.message || '未知错误'
+    ElMessage.error(`触发失败: ${msg}`)
+    console.error('createTask error:', error)
   } finally {
     loading.value = false
   }
