@@ -5,9 +5,15 @@
 
 
 # useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
+import pymongo
 
+class MongoPipeline:
+    def __init__(self):
+        # Docker 内部通过服务名 'mongo' 访问
+        self.client = pymongo.MongoClient("mongodb://mongo:27017/")
+        self.db = self.client["crawler_db"]
 
-class CrawlerSystemPipeline:
     def process_item(self, item, spider):
+        # 存储到 contents 集合
+        self.db["contents"].insert_one(dict(item))
         return item

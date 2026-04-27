@@ -5,8 +5,9 @@
 
 import scrapy
 
-
-class CrawlerSystemItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class WebpageItem(scrapy.Item):
+    url = scrapy.Field()
+    title = scrapy.Field()
+    text_content = scrapy.Field()
+    images = scrapy.Field() # 存储图片链接列表
+    task_id = scrapy.Field() # A同学传给你的任务ID
