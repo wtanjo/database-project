@@ -2,7 +2,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# 注意：如果你们之后用 docker-compose 跑后端，把 192.168.3.84 改成 mysql (容器名)
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:root123@192.168.3.84:3306/crawler_db?charset=utf8mb4"
 
 engine = create_engine(
