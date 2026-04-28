@@ -1,3 +1,5 @@
+import os
+
 BOT_NAME = "crawler"
 SPIDER_MODULES = ["crawler.spiders"]
 NEWSPIDER_MODULE = "crawler.spiders"
@@ -12,18 +14,18 @@ ITEM_PIPELINES = {
    "crawler.pipelines.DatabasePipeline": 300,
 }
 
-# 数据库配置 (请根据实际情况修改密码和 host，Docker 环境下 host 通常为 'mysql' 和 'mongo')
+# 数据库配置：优先读取环境变量，本地开发回退到 127.0.0.1
 MYSQL_SETTINGS = {
-    'host': '127.0.0.1',
-    'port': 3306,
-    'user': 'root',
-    'password': 'root102',  # 替换成你的密码
-    'db': 'crawler_db',
+    'host': os.getenv('MYSQL_HOST', '127.0.0.1'),
+    'port': int(os.getenv('MYSQL_PORT', 3306)),
+    'user': os.getenv('MYSQL_USER', 'root'),
+    'password': os.getenv('MYSQL_PASSWORD', 'root102'),
+    'db': os.getenv('MYSQL_DB', 'crawler_db'),
     'charset': 'utf8mb4'
 }
 
 MONGO_SETTINGS = {
-    'uri': 'mongodb://127.0.0.1:27017/',
+    'uri': os.getenv('MONGO_URI', 'mongodb://127.0.0.1:27017/'),
     'db_name': 'crawler_db'
 }
 
