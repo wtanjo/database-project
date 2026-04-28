@@ -46,7 +46,7 @@ services:
       MYSQL_DB: crawler_db
       MONGO_URI: mongodb://mongodb:27017/
     volumes:
-      - ./backend:/app   # 挂载源码，支持热重载
+      - ./backend:/app:z   # 挂载源码，支持热重载（:z 解决 Linux/SELinux 权限问题）
     depends_on:
       mysql:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
     environment:
       API_TARGET: http://backend:8000   # Vite 代理服务端转发目标
     volumes:
-      - ./frontend/src:/app/src         # 挂载 src，支持热重载
+      - ./frontend/src:/app/src:z       # 挂载 src，支持热重载（:z 解决 Linux/SELinux 权限问题）
     depends_on:
       - backend
 
