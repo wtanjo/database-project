@@ -12,3 +12,4 @@ backend/db/__pycache__/mysql.cpython-311.pyc
 backend/models/__pycache__/CrawlTask.cpython-311.pyc
 backend/routers/__pycache__/contents.cpython-311.pyc
 backend/routers/__pycache__/tasks.cpython-311.pyc
+.DS_Store
