@@ -159,7 +159,7 @@ erDiagram
 **前置条件**：已安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:wtanjo/database-project.git
 cd database-project
 docker compose up --build
 ```
