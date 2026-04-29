@@ -5,9 +5,10 @@ SPIDER_MODULES = ["crawler.spiders"]
 NEWSPIDER_MODULE = "crawler.spiders"
 
 # 反爬设置
-ROBOTSTXT_OBEY = False     # MVP 阶段建议设为 False
-DOWNLOAD_DELAY = 1.5       # 请求间隔，防止被封
-DEPTH_LIMIT = 5            # 爬取深度限制，防止无限爬取
+ROBOTSTXT_OBEY = False
+DOWNLOAD_DELAY = 1          # 请求间隔（秒）
+DEPTH_LIMIT = 4             # 爬取深度：0=起始页，1=一级链接，2=二级链接
+CLOSESPIDER_PAGECOUNT = 100 # 每次任务最多爬取 100 页，防止 Wikipedia 类站点无限扩散
 
 # 启用 Pipeline
 ITEM_PIPELINES = {
