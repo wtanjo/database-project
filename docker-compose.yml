@@ -5,6 +5,7 @@ services:
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    command: ["mysqld", "--log-error-verbosity=1"]
     environment:
       MYSQL_ROOT_PASSWORD: root102
       MYSQL_DATABASE: crawler_db
@@ -21,6 +22,7 @@ services:
   mongodb:
     image: mongo:6.0
     restart: unless-stopped
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
     ports:
       - "27017:27017"
     volumes:
