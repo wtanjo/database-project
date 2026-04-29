@@ -55,9 +55,12 @@ class GeneralSpider(scrapy.Spider):
         meta_item['task_id'] = current_task_id # 使用当前 meta 里的 id
         yield meta_item
 
-        # 2. 提取正文 (逻辑保持不变)
-        paragraphs = response.css('p *::text').getall()
-        text_content = '\n'.join([p.strip() for p in paragraphs if p.strip()])
+        # 2. 提取正文：用 XPath 抓取 body 内所有可见文本节点，排除 script/style
+        #    这样无论内容在 <p>、<span>、<div> 还是其他标签内都能捕获
+        text_nodes = response.xpath(
+            '//body//text()[not(ancestor::script) and not(ancestor::style)]'
+        ).getall()
+        text_content = '\n'.join([t.strip() for t in text_nodes if t.strip()])
         if text_content:
             content_item = ContentItem()
             content_item['webpage_url'] = response.url

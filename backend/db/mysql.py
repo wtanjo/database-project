@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from crawler.crawler.settings import MYSQL_SETTINGS as ms
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{ms['user']}:{ms['password']}@{ms['host']}:{ms['port']}/{ms['db']}?{ms['charset']}"
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{ms['user']}:{ms['password']}@{ms['host']}:{ms['port']}/{ms['db']}?charset={ms['charset']}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 

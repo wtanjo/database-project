@@ -13,3 +13,11 @@ backend/models/__pycache__/CrawlTask.cpython-311.pyc
 backend/routers/__pycache__/contents.cpython-311.pyc
 backend/routers/__pycache__/tasks.cpython-311.pyc
 .DS_Store
+backend/__pycache__/utils.cpython-311.pyc
+backend/models/__pycache__/DataSource.cpython-311.pyc
+backend/models/__pycache__/Webpage.cpython-311.pyc
+backend/models/__pycache__/Website.cpython-311.pyc
+backend/routers/__pycache__/images.cpython-311.pyc
+backend/routers/__pycache__/stats.cpython-311.pyc
+backend/routers/__pycache__/webpages.cpython-311.pyc
+backend/routers/__pycache__/websites.cpython-311.pyc

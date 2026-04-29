@@ -1,11 +1,13 @@
 from pymongo import MongoClient
 from crawler.crawler.settings import MONGO_SETTINGS as ms
+
 MONGO_URL = ms['uri']
 client = MongoClient(MONGO_URL)
 
 db = client["crawler_db"]
 
 contents_collection = db["contents"]
+images_collection = db["images"]
 
 def test_mongo():
     try:
