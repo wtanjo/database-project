@@ -7,7 +7,7 @@ NEWSPIDER_MODULE = "crawler.spiders"
 # 反爬设置
 ROBOTSTXT_OBEY = False     # MVP 阶段建议设为 False
 DOWNLOAD_DELAY = 1.5       # 请求间隔，防止被封
-DEPTH_LIMIT = 1            # 爬取深度限制，防止无限爬取
+DEPTH_LIMIT = 5            # 爬取深度限制，防止无限爬取
 
 # 启用 Pipeline
 ITEM_PIPELINES = {
