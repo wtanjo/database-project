@@ -31,3 +31,6 @@ MONGO_SETTINGS = {
 
 # 解决高版本 Scrapy 异步报错
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+
+# 只保留 WARNING 及以上，屏蔽 Scrapy/pymongo 的 DEBUG/INFO 噪音
+LOG_LEVEL = "WARNING"

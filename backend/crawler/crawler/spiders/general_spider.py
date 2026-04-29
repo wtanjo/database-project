@@ -25,16 +25,14 @@ class GeneralSpider(scrapy.Spider):
             )
 
     def errback_handler(self, failure):
-        # --- 修改 2: 优先从 meta 获取 task_id，更健壮 ---
         task_id = failure.request.meta.get('task_id') or self.task_id
         self.logger.error(f"请求失败: {failure.request.url}, 错误: {str(failure.value)}")
-        
-        yield {
-            'type': 'task_error',
-            'task_id': task_id,
-            'error_msg': str(failure.value),
-            'status': 'failed'
-        }
+
+        error_item = TaskErrorItem()
+        error_item['task_id'] = task_id
+        error_item['error_msg'] = str(failure.value)
+        error_item['status'] = 'failed'
+        yield error_item
 
     def parse(self, response):
         # 提取当前请求携带的 task_id
