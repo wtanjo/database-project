@@ -8,3 +8,4 @@ backend/db/__pycache__/*.pyc
 backend/models/__pycache__/*.pyc
 backend/routers/__pycache__/*.pyc
 .DS_Store
+/.claude/
