@@ -74,7 +74,7 @@ class DatabasePipeline:
             self.mysql_cursor.execute(
                 """INSERT IGNORE INTO Webpage (url, website_id, crawl_time, status, title)
                    VALUES (%s, %s, %s, 'success', %s)""",
-                (item['url'], website_id, item['crawl_time'], item.get('title', '')),
+                (item['url'][:768], website_id, item['crawl_time'], item.get('title', '')),
             )
             affected = self.mysql_cursor.rowcount
             self.mysql_conn.commit()

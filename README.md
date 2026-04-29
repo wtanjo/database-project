@@ -123,13 +123,12 @@ erDiagram
 | 列 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `id` | INT | PK, AUTO_INCREMENT | |
-| `url` | VARCHAR(2048) | NOT NULL | 页面完整 URL |
+| `url` | VARCHAR(768) | NOT NULL, UNIQUE | 页面完整 URL（768 字符上限，满足 utf8mb4 索引字节限制） |
 | `website_id` | INT | FK → Website.id (CASCADE) | 所属域名 |
 | `crawl_time` | DATETIME | NOT NULL | 爬取时间 |
 | `status` | ENUM | NOT NULL, DEFAULT 'pending' | pending / fetching / success / failed / invalid |
 | `title` | VARCHAR(512) | NULL | 页面 `<title>` 内容 |
 
-> `url` 列通过前缀索引（768 字符）保证唯一性，避免 utf8mb4 下全列索引超过 InnoDB 3072 字节上限。
 
 #### `DataSource` — 数据源信息表
 
