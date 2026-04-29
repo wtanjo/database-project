@@ -97,7 +97,7 @@ erDiagram
 |---|---|---|---|
 | `id` | INT | PK, AUTO_INCREMENT | 任务 ID |
 | `target_url` | VARCHAR(2048) | NOT NULL | 用户提交的目标 URL |
-| `status` | VARCHAR(20) | DEFAULT 'pending' | pending / running / finished / failed |
+| `status` | ENUM | DEFAULT 'pending' | pending / running / finished / failed |
 | `created_at` | DATETIME | | 任务创建时间 |
 | `finished_at` | DATETIME | NULL | 爬取完成时间 |
 | `page_count` | INT | DEFAULT 0 | 已爬取页面数 |
