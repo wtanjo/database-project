@@ -57,7 +57,7 @@ erDiagram
     CrawlTask {
         int       id          PK
         varchar   target_url
-        varchar   status
+        enum      status
         datetime  created_at
         datetime  finished_at
         int       page_count
