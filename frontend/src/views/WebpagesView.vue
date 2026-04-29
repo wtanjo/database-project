@@ -70,13 +70,24 @@
     <el-drawer v-model="drawerVisible" :title="drawerTitle" size="52%" direction="rtl">
       <div v-loading="detailLoading" class="drawer-body">
         <template v-if="detail">
-          <!-- 基本信息 -->
-          <el-descriptions :column="1" border size="small" style="margin-bottom: 16px">
+          <!-- 基本信息 + 跳转按钮 -->
+          <el-descriptions :column="1" border size="small" style="margin-bottom: 12px">
             <el-descriptions-item label="URL">
               <a :href="detail.url" target="_blank" class="url-link">{{ detail.url }}</a>
             </el-descriptions-item>
             <el-descriptions-item label="爬取时间">{{ detail.crawl_time }}</el-descriptions-item>
           </el-descriptions>
+
+          <!-- 跳转操作区 -->
+          <div class="jump-bar">
+            <span class="jump-label">在以下页面中查看：</span>
+            <el-button size="small" type="primary" plain :icon="Document" @click="goContents">
+              内容检索
+            </el-button>
+            <el-button size="small" type="success" plain :icon="Picture" @click="goImages">
+              图片管理
+            </el-button>
+          </div>
 
           <!-- 正文检索 -->
           <el-divider content-position="left">正文内容</el-divider>
@@ -144,10 +155,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Delete, Search, Picture } from '@element-plus/icons-vue'
+import { Delete, Search, Picture, Document } from '@element-plus/icons-vue'
 import { getWebpages, getWebpageDetail, deleteWebpage } from '@/api/index'
+
+const router = useRouter()
 
 const route = useRoute()
 
@@ -254,6 +267,16 @@ function escapeHtml(str: string) {
     .replace(/\n/g, '<br/>')
 }
 
+function goContents() {
+  router.push({ path: '/contents', query: { webpage_url: detail.value?.url } })
+  drawerVisible.value = false
+}
+
+function goImages() {
+  router.push({ path: '/images', query: { webpage_url: detail.value?.url } })
+  drawerVisible.value = false
+}
+
 // 从网站管理页带 domain 参数跳转过来时自动触发搜索
 watch(() => route.query.domain, (val) => {
   if (val) {
@@ -282,6 +305,21 @@ onMounted(fetchWebpages)
 
 .drawer-body { padding: 0 4px; }
 .url-link { color: #409eff; word-break: break-all; }
+.jump-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #f7f4ef;
+  border-radius: 8px;
+  border: 1px solid #ede9e3;
+}
+.jump-label {
+  font-size: 12px;
+  color: #8a8080;
+  margin-right: 4px;
+}
 
 .content-scrollbar {
   border: 1px solid #e4e7ed;

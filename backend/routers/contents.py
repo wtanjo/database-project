@@ -13,10 +13,17 @@ from utils import success, paginate
 router = APIRouter(prefix="/api/contents", tags=["contents"])
 
 
-def _build_mongo_filter(keyword: Optional[str], start_time: Optional[str], end_time: Optional[str]) -> dict:
+def _build_mongo_filter(
+    keyword: Optional[str],
+    start_time: Optional[str],
+    end_time: Optional[str],
+    webpage_url: Optional[str] = None,
+) -> dict:
     mongo_filter: dict = {}
     if keyword:
         mongo_filter["text_content"] = {"$regex": keyword, "$options": "i"}
+    if webpage_url:
+        mongo_filter["webpage_url"] = {"$regex": webpage_url, "$options": "i"}
     if start_time or end_time:
         time_filter: dict = {}
         if start_time:
@@ -30,6 +37,7 @@ def _build_mongo_filter(keyword: Optional[str], start_time: Optional[str], end_t
 @router.get("")
 def list_contents(
     keyword: Optional[str] = Query(None, description="正文关键字"),
+    webpage_url: Optional[str] = Query(None, description="来源页面 URL（模糊匹配）"),
     start_time: Optional[str] = Query(None, description="爬取起始时间 YYYY-MM-DD"),
     end_time: Optional[str] = Query(None, description="爬取截止时间 YYYY-MM-DD"),
     page: int = Query(1, ge=1),
@@ -37,7 +45,7 @@ def list_contents(
     db: Session = Depends(get_db),
 ):
     """检索内容列表，整合 MySQL 网页元信息与 MongoDB 正文/图片。"""
-    mongo_filter = _build_mongo_filter(keyword, start_time, end_time)
+    mongo_filter = _build_mongo_filter(keyword, start_time, end_time, webpage_url)
 
     total = contents_collection.count_documents(mongo_filter)
     cursor = (
@@ -72,12 +80,13 @@ def list_contents(
 @router.get("/export/csv")
 def export_csv(
     keyword: Optional[str] = Query(None),
+    webpage_url: Optional[str] = Query(None),
     start_time: Optional[str] = Query(None),
     end_time: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """将检索结果导出为 CSV 文件。"""
-    mongo_filter = _build_mongo_filter(keyword, start_time, end_time)
+    mongo_filter = _build_mongo_filter(keyword, start_time, end_time, webpage_url)
     cursor = contents_collection.find(mongo_filter).sort("_id", -1).limit(5000)
 
     output = io.StringIO()

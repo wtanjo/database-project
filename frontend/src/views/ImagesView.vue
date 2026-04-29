@@ -72,12 +72,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Picture } from '@element-plus/icons-vue'
 import { getImages } from '@/api/index'
 
+const route = useRoute()
 const keyword = ref('')
-const webpageUrl = ref('')
+const webpageUrl = ref((route.query.webpage_url as string) || '')
 const dateRange = ref<[string, string] | null>(null)
 const loading = ref(false)
 const images = ref<any[]>([])
@@ -119,6 +121,14 @@ function handleReset() {
   page.value = 1
   fetchImages()
 }
+
+watch(() => route.query.webpage_url, (val) => {
+  if (val) {
+    webpageUrl.value = val as string
+    page.value = 1
+    fetchImages()
+  }
+})
 
 onMounted(fetchImages)
 </script>

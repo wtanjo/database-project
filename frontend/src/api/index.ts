@@ -23,6 +23,7 @@ export const getTasks = (page = 1, page_size = 10) =>
 // ── Contents ──────────────────────────────────────────────────────────────────
 export const getContents = (params: {
   keyword?: string
+  webpage_url?: string
   start_time?: string
   end_time?: string
   page?: number
@@ -31,11 +32,13 @@ export const getContents = (params: {
 
 export const exportContentsCSV = (params: {
   keyword?: string
+  webpage_url?: string
   start_time?: string
   end_time?: string
 }) => {
   const query = new URLSearchParams()
   if (params.keyword) query.append('keyword', params.keyword)
+  if (params.webpage_url) query.append('webpage_url', params.webpage_url)
   if (params.start_time) query.append('start_time', params.start_time)
   if (params.end_time) query.append('end_time', params.end_time)
   window.open(`/api/contents/export/csv?${query.toString()}`)

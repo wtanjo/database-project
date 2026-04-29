@@ -4,7 +4,10 @@
     <el-card shadow="never" class="search-card">
       <el-form inline @submit.prevent="handleSearch">
         <el-form-item label="关键字">
-          <el-input v-model="keyword" placeholder="正文关键字" clearable style="width: 220px" />
+          <el-input v-model="keyword" placeholder="正文关键字" clearable style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="来源页面">
+          <el-input v-model="webpageUrl" placeholder="URL 关键字" clearable style="width: 220px" />
         </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker
@@ -14,7 +17,7 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             value-format="YYYY-MM-DD"
-            style="width: 240px"
+            style="width: 230px"
           />
         </el-form-item>
         <el-form-item>
@@ -42,17 +45,12 @@
         <a :href="item.url" target="_blank" class="content-url">{{ item.url }}</a>
         <p class="content-text">{{ truncate(item.text_content, 200) }}</p>
 
-        <!-- 关键词 -->
         <div v-if="item.keywords?.length" class="tags">
-          <el-tag
-            v-for="kw in item.keywords"
-            :key="kw"
-            size="small"
-            style="margin-right: 4px"
-          >{{ kw }}</el-tag>
+          <el-tag v-for="kw in item.keywords" :key="kw" size="small" style="margin-right: 4px">
+            {{ kw }}
+          </el-tag>
         </div>
 
-        <!-- 图片缩略图 -->
         <div v-if="item.images?.length" class="thumbs">
           <el-image
             v-for="(img, i) in item.images.slice(0, 5)"
@@ -81,11 +79,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Download } from '@element-plus/icons-vue'
 import { getContents, exportContentsCSV } from '@/api/index'
 
+const route = useRoute()
 const keyword = ref('')
+const webpageUrl = ref((route.query.webpage_url as string) || '')
 const dateRange = ref<[string, string] | null>(null)
 const loading = ref(false)
 const items = ref<any[]>([])
@@ -98,6 +99,7 @@ async function fetchContents() {
   try {
     const params: any = { page: page.value, page_size: pageSize.value }
     if (keyword.value) params.keyword = keyword.value
+    if (webpageUrl.value) params.webpage_url = webpageUrl.value
     if (dateRange.value) {
       params.start_time = dateRange.value[0]
       params.end_time = dateRange.value[1]
@@ -119,6 +121,7 @@ function handleSearch() {
 
 function handleReset() {
   keyword.value = ''
+  webpageUrl.value = ''
   dateRange.value = null
   page.value = 1
   fetchContents()
@@ -127,6 +130,7 @@ function handleReset() {
 function handleExport() {
   exportContentsCSV({
     keyword: keyword.value || undefined,
+    webpage_url: webpageUrl.value || undefined,
     start_time: dateRange.value?.[0],
     end_time: dateRange.value?.[1],
   })
@@ -136,6 +140,15 @@ function truncate(text: string, len: number) {
   if (!text) return ''
   return text.length > len ? text.slice(0, len) + '...' : text
 }
+
+// 从网页管理跳转过来时带参数自动搜索
+watch(() => route.query.webpage_url, (val) => {
+  if (val) {
+    webpageUrl.value = val as string
+    page.value = 1
+    fetchContents()
+  }
+})
 
 onMounted(fetchContents)
 </script>
