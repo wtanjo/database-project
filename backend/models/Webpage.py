@@ -1,9 +1,8 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum
 from db.mysql import Base
 
-class Status(enum.Enum):
+class Status(str, enum.Enum):
     PENDING = 'pending'
     FETCHING = 'fetching'
     SUCCESS = 'success'
@@ -17,5 +16,5 @@ class Webpage(Base):
     url = Column(String(2048), nullable=False, unique=True)
     website_id = Column(Integer, ForeignKey("Website.id", ondelete="CASCADE"))
     crawl_time = Column(DateTime, nullable=False)
-    status = Column(sqlalchemy.Enum(Status), nullable=False, default=Status.PENDING)
+    status = Column(Enum(Status, values_callable=lambda x: [e.value for e in x]), nullable=False, default=Status.PENDING)
     title = Column(String(512))
