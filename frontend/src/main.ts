@@ -11,6 +11,7 @@ import TasksView from './views/TasksView.vue'
 import ContentsView from './views/ContentsView.vue'
 import ImagesView from './views/ImagesView.vue'
 import WebsitesView from './views/WebsitesView.vue'
+import WebpagesView from './views/WebpagesView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,6 +25,7 @@ const router = createRouter({
         { path: 'contents', component: ContentsView },
         { path: 'images', component: ImagesView },
         { path: 'websites', component: WebsitesView },
+        { path: 'webpages', component: WebpagesView },
       ],
     },
   ],
@@ -31,7 +33,6 @@ const router = createRouter({
 
 const app = createApp(App)
 
-// 全局注册所有 Element Plus 图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }

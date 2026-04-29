@@ -42,16 +42,29 @@ export const exportContentsCSV = (params: {
 }
 
 // ── Images ────────────────────────────────────────────────────────────────────
-export const getImages = (params: { keyword?: string; page?: number; page_size?: number }) =>
-  http.get('/images', { params })
+export const getImages = (params: {
+  keyword?: string
+  webpage_url?: string
+  start_time?: string
+  end_time?: string
+  page?: number
+  page_size?: number
+}) => http.get('/images', { params })
 
 // ── Websites ──────────────────────────────────────────────────────────────────
 export const getWebsites = (page = 1, page_size = 10) =>
   http.get('/websites', { params: { page, page_size } })
 
 // ── Webpages ──────────────────────────────────────────────────────────────────
-export const getWebpages = (params: { website_id?: number; page?: number; page_size?: number }) =>
-  http.get('/webpages', { params })
+export const getWebpages = (params: {
+  website_id?: number
+  domain?: string
+  url_keyword?: string
+  page?: number
+  page_size?: number
+}) => http.get('/webpages', { params })
+
+export const getWebpageDetail = (id: number) => http.get(`/webpages/${id}/detail`)
 
 export const deleteWebpage = (id: number) => http.delete(`/webpages/${id}`)
 

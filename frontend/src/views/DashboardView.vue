@@ -3,7 +3,7 @@
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stat-row">
       <el-col :span="6" v-for="card in statCards" :key="card.label">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card" shadow="hover" @click="router.push(card.route)" style="cursor: pointer">
           <div class="stat-inner">
             <el-icon :size="36" :color="card.color"><component :is="card.icon" /></el-icon>
             <div class="stat-text">
@@ -49,8 +49,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { List, Monitor, Document, Picture } from '@element-plus/icons-vue'
 import { getStats } from '@/api/index'
+
+const router = useRouter()
 
 const loading = ref(false)
 const stats = ref<any>(null)
@@ -58,10 +61,10 @@ const stats = ref<any>(null)
 const statCards = computed(() => {
   if (!stats.value) return []
   return [
-    { label: '爬取任务', value: stats.value.tasks?.total ?? 0, icon: List, color: '#409eff' },
-    { label: '已收录网站', value: stats.value.websites ?? 0, icon: Monitor, color: '#67c23a' },
-    { label: '内容条目', value: stats.value.contents ?? 0, icon: Document, color: '#e6a23c' },
-    { label: '图片数量', value: stats.value.images ?? 0, icon: Picture, color: '#f56c6c' },
+    { label: '爬取任务', value: stats.value.tasks?.total ?? 0, icon: List, color: '#409eff', route: '/tasks' },
+    { label: '已收录网站', value: stats.value.websites ?? 0, icon: Monitor, color: '#67c23a', route: '/websites' },
+    { label: '内容条目', value: stats.value.contents ?? 0, icon: Document, color: '#e6a23c', route: '/contents' },
+    { label: '图片数量', value: stats.value.images ?? 0, icon: Picture, color: '#f56c6c', route: '/images' },
   ]
 })
 

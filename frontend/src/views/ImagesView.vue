@@ -4,7 +4,21 @@
     <el-card shadow="never" class="search-card">
       <el-form inline @submit.prevent="handleSearch">
         <el-form-item label="描述关键字">
-          <el-input v-model="keyword" placeholder="图片描述关键字" clearable style="width: 220px" />
+          <el-input v-model="keyword" placeholder="图片描述关键字" clearable style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="来源页面">
+          <el-input v-model="webpageUrl" placeholder="URL 关键字" clearable style="width: 220px" />
+        </el-form-item>
+        <el-form-item label="爬取时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width: 240px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" native-type="submit" :loading="loading">搜索</el-button>
@@ -63,6 +77,8 @@ import { Picture } from '@element-plus/icons-vue'
 import { getImages } from '@/api/index'
 
 const keyword = ref('')
+const webpageUrl = ref('')
+const dateRange = ref<[string, string] | null>(null)
 const loading = ref(false)
 const images = ref<any[]>([])
 const total = ref(0)
@@ -76,6 +92,11 @@ async function fetchImages() {
   try {
     const params: any = { page: page.value, page_size: pageSize.value }
     if (keyword.value) params.keyword = keyword.value
+    if (webpageUrl.value) params.webpage_url = webpageUrl.value
+    if (dateRange.value) {
+      params.start_time = dateRange.value[0]
+      params.end_time = dateRange.value[1]
+    }
     const res: any = await getImages(params)
     if (res.code === 0) {
       images.value = res.data.items
@@ -93,6 +114,8 @@ function handleSearch() {
 
 function handleReset() {
   keyword.value = ''
+  webpageUrl.value = ''
+  dateRange.value = null
   page.value = 1
   fetchImages()
 }
