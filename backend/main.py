@@ -5,7 +5,6 @@ from db.mysql import Base, engine
 import models.CrawlTask
 import models.Website
 import models.Webpage
-import models.DataSource
 
 Base.metadata.create_all(bind=engine)
 

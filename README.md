@@ -77,16 +77,7 @@ erDiagram
         varchar   title
     }
 
-    DataSource {
-        int       id          PK
-        int       webpage_id  FK
-        varchar   publisher
-        datetime  publish_time
-        varchar   source_url
-    }
-
     Website ||--o{ Webpage : "1 域名包含 N 页面"
-    Webpage ||--o{ DataSource : "1 页面对应 N 数据源"
     CrawlTask }o--o{ Webpage : "触发爬取（业务关联）"
 ```
 
@@ -128,17 +119,6 @@ erDiagram
 | `crawl_time` | DATETIME | NOT NULL | 爬取时间 |
 | `status` | ENUM | NOT NULL, DEFAULT 'pending' | pending / fetching / success / failed / invalid |
 | `title` | VARCHAR(512) | NULL | 页面 `<title>` 内容 |
-
-
-#### `DataSource` — 数据源信息表
-
-| 列 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `id` | INT | PK, AUTO_INCREMENT | |
-| `webpage_id` | INT | FK → Webpage.id (CASCADE) | 所属网页 |
-| `publisher` | VARCHAR(255) | NULL | 数据发布者 |
-| `publish_time` | DATETIME | NULL | 发布时间 |
-| `source_url` | VARCHAR(2048) | NULL | 原始数据链接 |
 
 ---
 
@@ -317,8 +297,7 @@ database-project/
 │   ├── models/
 │   │   ├── CrawlTask.py
 │   │   ├── Website.py
-│   │   ├── Webpage.py
-│   │   └── DataSource.py
+│   │   └── Webpage.py
 │   ├── routers/
 │   │   ├── tasks.py              # POST + GET /api/tasks
 │   │   ├── contents.py           # GET /api/contents + CSV 导出
