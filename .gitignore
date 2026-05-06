@@ -10,3 +10,4 @@ backend/routers/__pycache__/*.pyc
 .DS_Store
 /.claude/
 .aider*
+AGENTS.md
