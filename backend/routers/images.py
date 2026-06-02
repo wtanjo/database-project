@@ -24,9 +24,9 @@ def list_images(
 
     # 按来源页面 URL 过滤：先查 Webpage ID，再过滤 Image
     if webpage_url:
-        wp_ids = db.query(Webpage.id).filter(
-            Webpage.url.like(f"%{webpage_url}%")
-        ).subquery()
+        wp_ids = (
+            db.query(Webpage.id).filter(Webpage.url.like(f"%{webpage_url}%")).subquery()
+        )
         query = query.filter(Image.webpage_id.in_(wp_ids))
 
     if keyword:
@@ -49,12 +49,14 @@ def list_images(
 
     items = []
     for img in images:
-        items.append({
-            "id": img.id,
-            "webpage_url": wps.get(img.webpage_id, ""),
-            "image_url": img.image_url,
-            "description": img.description or "",
-            "crawl_time": img.crawl_time.isoformat() if img.crawl_time else "",
-        })
+        items.append(
+            {
+                "id": img.id,
+                "webpage_url": wps.get(img.webpage_id, ""),
+                "image_url": img.image_url,
+                "description": img.description or "",
+                "crawl_time": img.crawl_time.isoformat() if img.crawl_time else "",
+            }
+        )
 
     return success(paginate(items, total, page, page_size))

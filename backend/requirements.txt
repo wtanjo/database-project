@@ -4,3 +4,5 @@ sqlalchemy==2.0.40
 pymysql==1.1.1
 pymongo==4.12.1
 scrapy==2.12.0
+# Pin Twisted: >=24.7.0 removed _setAcceptableProtocols, breaks Scrapy 2.12
+twisted<24.7.0

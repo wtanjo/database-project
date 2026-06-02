@@ -134,7 +134,9 @@ class DatabasePipeline:
                     res[0],
                     item.get("image_url", ""),
                     item.get("description", ""),
-                    item.get("crawl_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    item.get(
+                        "crawl_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    ),
                 ),
             )
             self.mysql_conn.commit()

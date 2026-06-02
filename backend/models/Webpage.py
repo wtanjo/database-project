@@ -4,11 +4,11 @@ from db.mysql import Base
 
 
 class Status(str, enum.Enum):
-    PENDING = 'pending'
-    FETCHING = 'fetching'
-    SUCCESS = 'success'
-    FAILED = 'failed'
-    INVALID = 'invalid'
+    PENDING = "pending"
+    FETCHING = "fetching"
+    SUCCESS = "success"
+    FAILED = "failed"
+    INVALID = "invalid"
 
 
 class Webpage(Base):
@@ -18,7 +18,11 @@ class Webpage(Base):
     url = Column(String(768), nullable=False, unique=True)
     website_id = Column(Integer, ForeignKey("Website.id", ondelete="CASCADE"))
     crawl_time = Column(DateTime, nullable=False)
-    status = Column(Enum(Status, values_callable=lambda x: [e.value for e in x]), nullable=False, default=Status.PENDING)
+    status = Column(
+        Enum(Status, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=Status.PENDING,
+    )
     title = Column(String(512))
     text_content = Column(Text, nullable=True)
     text_preview = Column(String(500), nullable=True)

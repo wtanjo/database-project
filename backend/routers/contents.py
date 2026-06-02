@@ -39,9 +39,11 @@ def _batch_fetch_images(db: Session, webpage_ids: list[int]) -> dict[int, list[s
     """批量获取图片 URL，按 webpage_id 分组"""
     if not webpage_ids:
         return {}
-    rows = db.query(Image.webpage_id, Image.image_url).filter(
-        Image.webpage_id.in_(webpage_ids)
-    ).all()
+    rows = (
+        db.query(Image.webpage_id, Image.image_url)
+        .filter(Image.webpage_id.in_(webpage_ids))
+        .all()
+    )
     images_map: dict[int, list[str]] = {}
     for wid, url in rows:
         images_map.setdefault(wid, []).append(url)
@@ -69,15 +71,17 @@ def list_contents(
 
     items = []
     for wp in webpages:
-        items.append({
-            "webpage_id": wp.id,
-            "title": wp.title or "",
-            "url": wp.url,
-            "text_content": wp.text_content or "",
-            "keywords": [],  # 暂未实现关键词提取
-            "images": images_map.get(wp.id, []),
-            "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else "",
-        })
+        items.append(
+            {
+                "webpage_id": wp.id,
+                "title": wp.title or "",
+                "url": wp.url,
+                "text_content": wp.text_content or "",
+                "keywords": [],  # 暂未实现关键词提取
+                "images": images_map.get(wp.id, []),
+                "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else "",
+            }
+        )
 
     return success(paginate(items, total, page, page_size))
 
@@ -99,13 +103,15 @@ def export_csv(
     writer.writerow(["webpage_id", "title", "url", "text_preview", "crawl_time"])
 
     for wp in webpages:
-        writer.writerow([
-            wp.id,
-            wp.title or "",
-            wp.url,
-            (wp.text_preview or "")[:500],
-            wp.crawl_time.isoformat() if wp.crawl_time else "",
-        ])
+        writer.writerow(
+            [
+                wp.id,
+                wp.title or "",
+                wp.url,
+                (wp.text_preview or "")[:500],
+                wp.crawl_time.isoformat() if wp.crawl_time else "",
+            ]
+        )
 
     output.seek(0)
     filename = f"contents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"

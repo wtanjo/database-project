@@ -26,9 +26,7 @@ def get_stats(db: Session = Depends(get_db)):
         .scalar()
     )
     task_failed = (
-        db.query(func.count(CrawlTask.id))
-        .filter(CrawlTask.status == "failed")
-        .scalar()
+        db.query(func.count(CrawlTask.id)).filter(CrawlTask.status == "failed").scalar()
     )
 
     website_total = db.query(func.count(Website.id)).scalar()
@@ -53,18 +51,21 @@ def get_stats(db: Session = Depends(get_db)):
         .all()
     )
 
-    return success({
-        "tasks": {
-            "total": task_total,
-            "running": task_running,
-            "completed": task_completed,
-            "failed": task_failed,
-        },
-        "websites": website_total,
-        "webpages": webpage_total,
-        "contents": content_total,
-        "images": image_total,
-        "top_websites": [
-            {"domain": row.domain, "webpage_count": row.count} for row in top_websites
-        ],
-    })
+    return success(
+        {
+            "tasks": {
+                "total": task_total,
+                "running": task_running,
+                "completed": task_completed,
+                "failed": task_failed,
+            },
+            "websites": website_total,
+            "webpages": webpage_total,
+            "contents": content_total,
+            "images": image_total,
+            "top_websites": [
+                {"domain": row.domain, "webpage_count": row.count}
+                for row in top_websites
+            ],
+        }
+    )
