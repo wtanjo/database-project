@@ -311,7 +311,7 @@ database-project/
 
 | 分支 | 说明 |
 |---|---|
-| `main` | 原始版本 |
-| `claude_branch` | 开发主线 |
-| `bugfix/cleanup-redundant-bugs` | Bug 修复 + 死代码清理 |
-| `refactor/mysql-primary-retrieval` | **检索回归 MySQL**（当前分支） |
+| `main` | 最新版本（MySQL 主检索 + 全功能） |
+| `dev` | 开发主线 |
+| `bugfix/cleanup-redundant-bugs` | Bug 修复 + 死代码清理（已合入 dev） |
+| `refactor/mysql-primary-retrieval` | 检索回归 MySQL 重构（已合入 main） |
