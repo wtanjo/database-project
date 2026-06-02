@@ -1,6 +1,6 @@
 # 网络数据爬取管理系统
 
-一个全栈网页爬虫管理系统。用户通过浏览器提交目标 URL，后端自动爬取页面及其子链接，将结构化元数据存入 MySQL，将正文内容与图片存入 MongoDB，并通过多个管理页面对爬取结果进行检索、查看和管理。
+全栈网页爬虫管理系统。前端提交目标 URL，后端异步启动 Scrapy 爬取页面及子链接，**所有检索以 MySQL 为主引擎**，MongoDB 仅做冗余备份。提供仪表盘、内容检索、图片管理、网页管理等功能。
 
 ---
 
@@ -10,36 +10,37 @@
 |---|---|
 | 前端 | Vue 3 + Vite + TypeScript + Element Plus |
 | 后端 | FastAPI + Uvicorn |
-| 爬虫 | Scrapy（由后端以子进程方式调用） |
-| 关系型数据库 | MySQL 8.0 |
-| 文档数据库 | MongoDB 6.0 |
-| 部署 | Docker + Docker Compose |
+| 爬虫 | Scrapy（子进程调用） |
+| 主数据库 | **MySQL 8.0**（元数据 + 正文 + 图片检索） |
+| 备份数据库 | MongoDB 6.0（Pipeline 双写备份） |
+| 部署 | Docker Compose |
+
+> **设计原则**：MySQL 承担全部 CRUD 与检索，MongoDB 仅做冗余备份。这是数据库课程项目的核心要求——通过 SQL 完成关系型数据库的建表、查询、索引优化等练习。
 
 ---
 
 ## 系统架构
 
 ```
-浏览器
-  │  HTTP /api/*
+浏览器 (Vue 3 :5173)
+  │  /api/*  (Vite proxy → backend:8000)
   ▼
-前端容器 (Vite :5173)
-  │  反向代理 /api → backend:8000
-  ▼
-后端容器 (FastAPI :8000)
-  ├── POST   /api/tasks            → 写入 MySQL CrawlTask，subprocess 启动 Scrapy
-  ├── GET    /api/tasks            → 任务列表分页查询
-  ├── GET    /api/contents         → 内容检索（关键字 + 时间范围 + 分页）
-  ├── GET    /api/contents/export/csv → 检索结果导出 CSV
-  ├── GET    /api/images           → 图片列表（描述关键字 + 分页）
-  ├── GET    /api/websites         → 网站列表
-  ├── GET    /api/webpages         → 网页列表（按网站过滤 + 分页）
-  ├── DELETE /api/webpages/{id}    → 级联删除网页及其 MongoDB 内容/图片
-  └── GET    /api/stats            → 系统统计数据
+FastAPI 后端 (:8000)
+  ├── POST   /api/tasks              → 写入 CrawlTask，子进程启动 Scrapy
+  ├── GET    /api/tasks              → 任务列表（MySQL）
+  ├── GET    /api/contents           → 内容检索：关键字 + 时间（MySQL Webpage 表）
+  ├── GET    /api/contents/export/csv → CSV 导出（MySQL）
+  ├── GET    /api/images             → 图片检索：描述关键字 + 时间（MySQL Image 表）
+  ├── GET    /api/websites           → 网站列表（MySQL Website 表）
+  ├── GET    /api/webpages           → 网页列表（MySQL Webpage 表）
+  ├── GET    /api/webpages/{id}/detail → 网页详情（MySQL Webpage + Image 表）
+  ├── DELETE /api/webpages/{id}      → 级联删除（MySQL CASCADE + MongoDB 异步清理）
+  └── GET    /api/stats              → 统计数据（MySQL）
 
-Scrapy（在后端容器内运行）
-  ├── 爬取网页元数据   → MySQL  (Website, Webpage, CrawlTask)
-  └── 爬取正文 / 图片  → MongoDB (contents, images)
+Scrapy 爬虫管道
+  ├── WebpageMetaItem  → MySQL Website + Webpage
+  ├── ContentItem      → MySQL Webpage (UPDATE text_content) + MongoDB 备份
+  └── ImageItem        → MySQL Image 表 + MongoDB 备份
 ```
 
 ---
@@ -53,7 +54,7 @@ erDiagram
     CrawlTask {
         int       id          PK
         varchar   target_url
-        enum      status
+        enum      status      "pending|running|completed|failed"
         datetime  created_at
         datetime  finished_at
         int       page_count
@@ -62,97 +63,111 @@ erDiagram
 
     Website {
         int       id           PK
-        varchar   domain       "UNIQUE"
+        varchar   domain       UK
         varchar   organization
         varchar   contact
         datetime  created_at
     }
 
     Webpage {
-        int       id          PK
-        varchar   url
-        int       website_id  FK
+        int       id           PK
+        varchar   url          UK "max 768"
+        int       website_id   FK
         datetime  crawl_time
-        enum      status
+        enum      status       "pending|fetching|success|failed|invalid"
         varchar   title
+        text      text_content  "全文正文"
+        varchar   text_preview  "前500字预览"
     }
 
-    Website ||--o{ Webpage : "1 域名包含 N 页面"
-    CrawlTask }o--o{ Webpage : "触发爬取（业务关联）"
+    Image {
+        int       id           PK
+        int       webpage_id   FK
+        varchar   image_url    "max 2048"
+        varchar   description  "alt文本"
+        datetime  crawl_time
+    }
+
+    Website ||--o{ Webpage : "1 域名 → N 网页"
+    Webpage ||--o{ Image : "1 网页 → N 图片 (CASCADE)"
+    CrawlTask }o--o{ Webpage : "触发爬取（业务关联，无FK）"
 ```
-
-> `CrawlTask` 与 `Webpage` 之间无数据库外键约束，关联发生在爬虫运行时（Scrapy 通过 `task_id` 参数更新任务状态）。
-
----
 
 ### MySQL 表结构
 
-#### `CrawlTask` — 爬取任务队列
+#### `CrawlTask` — 爬取任务
 
 | 列 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | INT | PK, AUTO_INCREMENT | 任务 ID |
+| `id` | INT | PK AUTO_INCREMENT | |
 | `target_url` | VARCHAR(2048) | NOT NULL | 用户提交的目标 URL |
-| `status` | ENUM | DEFAULT 'pending' | pending / running / completed / failed |
-| `created_at` | DATETIME | | 任务创建时间 |
+| `status` | ENUM('pending','running','completed','failed') | NOT NULL, DEFAULT 'pending' | |
+| `created_at` | DATETIME | DEFAULT NOW() | 任务创建时间 |
 | `finished_at` | DATETIME | NULL | 爬取完成时间 |
 | `page_count` | INT | DEFAULT 0 | 已爬取页面数 |
-| `error_msg` | TEXT | NULL | 失败时的错误信息 |
+| `error_msg` | TEXT | NULL | 失败信息 |
 
-#### `Website` — 域名去重表
-
-| 列 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `id` | INT | PK, AUTO_INCREMENT | |
-| `domain` | VARCHAR(255) | NOT NULL, UNIQUE | 域名，如 `books.toscrape.com` |
-| `organization` | VARCHAR(255) | NULL | 所属机构（预留） |
-| `contact` | VARCHAR(255) | NULL | 联系方式（预留） |
-| `created_at` | DATETIME | | 首次发现时间 |
-
-#### `Webpage` — 页面元数据表
+#### `Website` — 域名去重
 
 | 列 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | INT | PK, AUTO_INCREMENT | |
-| `url` | VARCHAR(768) | NOT NULL, UNIQUE | 页面完整 URL（768 字符上限，满足 utf8mb4 索引字节限制） |
-| `website_id` | INT | FK → Website.id (CASCADE) | 所属域名 |
-| `crawl_time` | DATETIME | NOT NULL | 爬取时间 |
-| `status` | ENUM | NOT NULL, DEFAULT 'pending' | pending / fetching / success / failed / invalid |
-| `title` | VARCHAR(512) | NULL | 页面 `<title>` 内容 |
+| `id` | INT | PK AUTO_INCREMENT | |
+| `domain` | VARCHAR(255) | NOT NULL UNIQUE | 如 `books.toscrape.com` |
+| `organization` | VARCHAR(255) | NULL | 所属机构 |
+| `contact` | VARCHAR(255) | NULL | 联系方式 |
+| `created_at` | DATETIME | DEFAULT NOW() | |
+
+#### `Webpage` — 网页（元数据 + 正文）
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | INT | PK AUTO_INCREMENT | |
+| `url` | VARCHAR(768) | NOT NULL UNIQUE | 768 字节索引上限 |
+| `website_id` | INT | FK→Website(id) ON DELETE CASCADE | |
+| `crawl_time` | DATETIME | NOT NULL | |
+| `status` | ENUM | NOT NULL, DEFAULT 'pending' | |
+| `title` | VARCHAR(512) | NULL | `<title>` 内容 |
+| `text_content` | LONGTEXT | NULL | **全文正文（检索主字段）** |
+| `text_preview` | VARCHAR(500) | NULL | 前 500 字预览 |
+
+#### `Image` — 图片
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | INT | PK AUTO_INCREMENT | |
+| `webpage_id` | INT | FK→Webpage(id) ON DELETE CASCADE | |
+| `image_url` | VARCHAR(2048) | NOT NULL | |
+| `description` | VARCHAR(1024) | NULL | img alt 文本 |
+| `crawl_time` | DATETIME | DEFAULT NOW() | |
+
+### 查询索引策略
+
+| 表 | 索引列 | 用途 |
+|---|---|---|
+| `Webpage` | `crawl_time` | 内容列表按时间排序 |
+| `Webpage` | `url` (UNIQUE) | 去重 + 关联查询 |
+| `Webpage` | `text_content` (FULLTEXT 可选) | 关键字检索 |
+| `Image` | `webpage_id` | 按网页查图片 |
+| `Image` | `crawl_time` | 图片列表排序 |
+| `Website` | `domain` (UNIQUE) | 域名去重 |
+
+### MongoDB 集合（备份）
+
+> MongoDB 仅作为 Pipeline 双写备份，**不参与任何 API 检索**。
+
+```json
+// contents 集合
+{ "webpage_url": "...", "text_content": "...", "keywords": [], "crawl_time": "..." }
+
+// images 集合
+{ "webpage_url": "...", "image_url": "...", "description": "...", "crawl_time": "..." }
+```
 
 ---
 
-### MongoDB 集合结构
+## 快速启动
 
-#### `contents` — 正文内容
-
-```json
-{
-  "_id":          "ObjectId",
-  "webpage_url":  "https://example.com/page",
-  "text_content": "页面正文文本（body 内所有可见文本节点）",
-  "keywords":     [],
-  "crawl_time":   "2026-04-29 12:00:00"
-}
-```
-
-#### `images` — 图片数据
-
-```json
-{
-  "_id":          "ObjectId",
-  "webpage_url":  "https://example.com/page",
-  "image_url":    "https://example.com/img/photo.jpg",
-  "description":  "img alt 文本",
-  "crawl_time":   "2026-04-29 12:00:00"
-}
-```
-
----
-
-## 快速启动（Docker）
-
-**前置条件**：已安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+### Docker（推荐）
 
 ```bash
 git clone git@github.com:wtanjo/database-project.git
@@ -160,124 +175,77 @@ cd database-project
 docker compose up --build
 ```
 
-启动完成后：
-
 | 服务 | 地址 |
 |---|---|
-| 前端页面 | http://localhost:5173 |
-| 后端 API 文档（Swagger） | http://localhost:8000/docs |
+| 前端 | http://localhost:5173 |
+| API 文档 (Swagger) | http://localhost:8000/docs |
 | MySQL | localhost:3306 |
 | MongoDB | localhost:27017 |
 
-> 首次启动会拉取镜像并安装依赖，约需 3–5 分钟。后续启动直接 `docker compose up`。
-
-**停止并保留数据：**
 ```bash
-docker compose down
+docker compose down       # 停止（保留数据）
+docker compose down -v    # 停止并清空数据库
 ```
 
-**停止并清除所有数据（含数据库 volume）：**
-```bash
-docker compose down -v
-```
+### 本地开发
 
----
-
-## 本地开发（不使用 Docker）
-
-### 1. 数据库
-
-确保本地 MySQL（端口 3306）和 MongoDB（端口 27017）已运行，MySQL 中存在数据库 `crawler_db`。
-
-### 2. 后端
+MySQL（3306）和 MongoDB（27017）需先运行。
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
+# 后端
+cd backend && pip install -r requirements.txt && uvicorn main:app --reload
+
+# 前端
+cd frontend && npm install && npm run dev
 ```
-
-### 3. 前端
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-本地开发时无需设置任何环境变量，代码中已配置回退默认值 `127.0.0.1`。
-
----
-
-## 功能模块
-
-### 仪表盘
-
-- 统计卡片：爬取任务总数、已收录网站数、内容条目数、图片数量
-- 任务状态分布：排队中 / 执行中 / 已完成 / 失败
-- 网页数 Top 10 网站排行
-
-### 爬取管理
-
-- 输入目标 URL，一键提交爬取任务
-- 任务列表展示（ID、URL、状态、页数、提交时间、完成时间、错误信息）
-- 每 5 秒自动轮询刷新任务状态
-
-### 内容检索
-
-- 正文关键字模糊搜索
-- 爬取时间范围筛选
-- 分页展示（卡片式，含标题、URL、正文预览、图片缩略图）
-- 一键导出检索结果为 CSV
-
-### 图片管理
-
-- 自适应网格展示所有爬取图片
-- 按描述关键字过滤
-- 支持大图预览
-
-### 网站管理
-
-- 网站列表与网页列表双栏联动
-- 点击网站可筛选其下所有网页
-- 网页级联删除（同步删除 MongoDB 中对应的正文和图片）
 
 ---
 
 ## API 接口
 
-| 方法 | 路径 | 说明 |
+所有接口返回统一格式：`{ "code": 0, "message": "success", "data": {...} }`
+
+| 方法 | 路径 | 查询引擎 | 说明 |
+|---|---|---|---|
+| `POST` | `/api/tasks` | MySQL | 提交爬取任务 |
+| `GET` | `/api/tasks` | MySQL | 任务列表（分页） |
+| `GET` | `/api/contents` | **MySQL** | 关键字 + 时间检索正文 |
+| `GET` | `/api/contents/export/csv` | **MySQL** | 检索结果导出 CSV |
+| `GET` | `/api/images` | **MySQL** | 图片列表（描述关键字 + 时间） |
+| `GET` | `/api/websites` | MySQL | 网站列表（分页） |
+| `GET` | `/api/webpages` | MySQL | 网页列表（域名/URL 过滤） |
+| `GET` | `/api/webpages/{id}/detail` | **MySQL** | 网页正文 + 图片详情 |
+| `DELETE` | `/api/webpages/{id}` | MySQL + MongoDB | 级联删除 |
+| `GET` | `/api/stats` | **MySQL** | 系统统计 |
+
+### 检索接口示例
+
+```bash
+# 关键字检索
+curl "http://localhost:8000/api/contents?keyword=database&page=1&page_size=10"
+
+# 时间范围 + 关键字
+curl "http://localhost:8000/api/contents?keyword=python&start_time=2026-01-01&end_time=2026-06-01"
+
+# 图片描述检索
+curl "http://localhost:8000/api/images?keyword=logo&page=1&page_size=20"
+
+# 网页详情
+curl "http://localhost:8000/api/webpages/42/detail"
+```
+
+---
+
+## 功能模块
+
+| 模块 | 路由 | 功能 |
 |---|---|---|
-| `POST` | `/api/tasks` | 提交爬取任务，body: `{"target_url": "https://..."}` |
-| `GET` | `/api/tasks` | 任务列表，支持 `page` / `page_size` 分页 |
-| `GET` | `/api/contents` | 内容检索，支持 `keyword` / `start_time` / `end_time` / `page` / `page_size` |
-| `GET` | `/api/contents/export/csv` | 导出检索结果为 CSV |
-| `GET` | `/api/images` | 图片列表，支持 `keyword` / `page` / `page_size` |
-| `GET` | `/api/websites` | 网站列表，支持 `page` / `page_size` |
-| `GET` | `/api/webpages` | 网页列表，支持 `website_id` 过滤 + `page` / `page_size` |
-| `DELETE` | `/api/webpages/{id}` | 删除网页及其 MongoDB 内容与图片 |
-| `GET` | `/api/stats` | 系统统计数据 |
-
-所有接口均返回统一格式：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": { ... }
-}
-```
-
-列表类接口的 `data` 结构：
-
-```json
-{
-  "total": 100,
-  "page": 1,
-  "page_size": 10,
-  "items": [ ... ]
-}
-```
+| **仪表盘** | `/` | 任务数/网站数/内容数/图片数统计卡片，任务状态分布，Top 10 网站 |
+| **爬取管理** | `/tasks` | 提交 URL → 异步 Scrapy 爬取，任务列表 5 秒轮询 |
+| **内容检索** | `/contents` | 正文关键字 LIKE 搜索 + 时间范围过滤 + 分页 + CSV 导出 |
+| **图片管理** | `/images` | 网格展示，description LIKE 搜索，大图预览 |
+| **网页管理** | `/webpages` | 域名/URL 过滤，抽屉详情（正文高亮搜索 + 图片），级联删除 |
+| **网站管理** | `/websites` | 域名列表，点击跳转网页管理 |
 
 ---
 
@@ -286,54 +254,64 @@ npm run dev
 ```
 database-project/
 ├── docker-compose.yml
+├── ASSIGNMENT_REQUIREMENTS.md     # 作业硬性要求清单
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── main.py                   # FastAPI 入口，注册所有路由
-│   ├── utils.py                  # 统一响应格式工具函数
+│   ├── main.py                    # FastAPI 入口
+│   ├── utils.py                   # success/error/paginate 工具
 │   ├── db/
-│   │   ├── mysql.py              # SQLAlchemy 连接 + get_db 依赖
-│   │   └── mongo.py              # PyMongo 连接，contents / images 集合
+│   │   ├── mysql.py               # SQLAlchemy 连接 + get_db
+│   │   └── mongo.py               # PyMongo 连接（备份用）
 │   ├── models/
-│   │   ├── CrawlTask.py
-│   │   ├── Website.py
-│   │   └── Webpage.py
+│   │   ├── CrawlTask.py           # 任务模型（含 Status 枚举）
+│   │   ├── Website.py             # 网站模型
+│   │   ├── Webpage.py             # 网页模型（全文 + 预览列）
+│   │   └── Image.py               # 图片模型（FK→Webpage）
 │   ├── routers/
-│   │   ├── tasks.py              # POST + GET /api/tasks
-│   │   ├── contents.py           # GET /api/contents + CSV 导出
-│   │   ├── images.py             # GET /api/images
-│   │   ├── websites.py           # GET /api/websites
-│   │   ├── webpages.py           # GET + DELETE /api/webpages
-│   │   └── stats.py              # GET /api/stats
-│   └── crawler/                  # Scrapy 项目
+│   │   ├── tasks.py               # 任务 CRUD + URL 验证
+│   │   ├── contents.py            # 正文检索（MySQL LIKE）
+│   │   ├── images.py              # 图片检索（MySQL）
+│   │   ├── websites.py            # 网站列表
+│   │   ├── webpages.py            # 网页列表 + 详情 + 级联删除
+│   │   └── stats.py               # 统计数据
+│   └── crawler/
 │       └── crawler/
-│           ├── settings.py       # 数据库配置（读取环境变量，回退本地默认值）
-│           ├── items.py          # WebpageMetaItem / ContentItem / ImageItem / TaskErrorItem
-│           ├── pipelines.py      # 双写 MySQL + MongoDB，任务状态流转
+│           ├── settings.py        # Scrapy 配置 + DB 连接
+│           ├── items.py           # Item 定义
+│           ├── pipelines.py       # 双写 MySQL + MongoDB
 │           └── spiders/
-│               └── general_spider.py  # 通用爬虫，XPath 提取全页可见文本
+│               └── general_spider.py  # 通用爬虫
 └── frontend/
     ├── Dockerfile
     └── src/
-        ├── api/
-        │   └── index.ts          # 所有接口的 axios 封装
-        ├── components/
-        │   └── AppLayout.vue     # 侧边栏布局
+        ├── api/index.ts           # axios 封装
+        ├── components/AppLayout.vue
         └── views/
             ├── DashboardView.vue
             ├── TasksView.vue
             ├── ContentsView.vue
             ├── ImagesView.vue
-            └── WebsitesView.vue
+            ├── WebsitesView.vue
+            └── WebpagesView.vue
 ```
 
 ---
 
 ## 推荐测试网站
 
-以下网站专为爬虫练习设计，无反爬限制：
-
 | 网站 | URL | 特点 |
 |---|---|---|
-| Quotes to Scrape | `https://quotes.toscrape.com/` | 名言文本，多页分页，适合测试正文爬取 |
-| Books to Scrape | `https://books.toscrape.com/` | 书籍列表含封面图片，适合测试图片爬取 |
+| Quotes to Scrape | `https://quotes.toscrape.com/` | 名言文本，多页 |
+| Books to Scrape | `https://books.toscrape.com/` | 书籍列表 + 封面图片 |
+
+---
+
+## Git 分支
+
+| 分支 | 说明 |
+|---|---|
+| `main` | 原始版本 |
+| `claude_branch` | 开发主线 |
+| `bugfix/cleanup-redundant-bugs` | Bug 修复 + 死代码清理 |
+| `refactor/mysql-primary-retrieval` | **检索回归 MySQL**（当前分支） |
