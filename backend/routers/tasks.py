@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.mysql import get_db
-from models.CrawlTask import CrawlTask
+from models.CrawlTask import CrawlTask, Status as CrawlTaskStatus
 from utils import success, error, paginate
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -32,7 +32,7 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
     raw_url = url_data.get("target_url") or url_data.get("url") or ""
     url = _validate_url(str(raw_url))
 
-    new_task = CrawlTask(target_url=url, status=CrawlTask.Status.PENDING)
+    new_task = CrawlTask(target_url=url, status=CrawlTaskStatus.PENDING)
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
