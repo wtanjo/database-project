@@ -47,8 +47,7 @@ def list_contents(
     images_map = {}
     if urls:
         img_docs = images_collection.find(
-            {"webpage_url": {"$in": urls}},
-            {"webpage_url": 1, "image_url": 1}
+            {"webpage_url": {"$in": urls}}, {"webpage_url": 1, "image_url": 1}
         )
         for d in img_docs:
             images_map.setdefault(d["webpage_url"], []).append(d["image_url"])
@@ -58,15 +57,17 @@ def list_contents(
         url = doc.get("webpage_url", "")
         webpage = webpages.get(url)
 
-        items.append({
-            "webpage_id": webpage.id if webpage else None,
-            "title": webpage.title if webpage else "",
-            "url": url,
-            "text_content": doc.get("text_content", ""),
-            "keywords": doc.get("keywords", []),
-            "images": images_map.get(url, []),
-            "crawl_time": doc.get("crawl_time", ""),
-        })
+        items.append(
+            {
+                "webpage_id": webpage.id if webpage else None,
+                "title": webpage.title if webpage else "",
+                "url": url,
+                "text_content": doc.get("text_content", ""),
+                "keywords": doc.get("keywords", []),
+                "images": images_map.get(url, []),
+                "crawl_time": doc.get("crawl_time", ""),
+            }
+        )
 
     return success(paginate(items, total, page, page_size))
 
@@ -94,19 +95,23 @@ def export_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["webpage_id", "title", "url", "text_content", "keywords", "crawl_time"])
+    writer.writerow(
+        ["webpage_id", "title", "url", "text_content", "keywords", "crawl_time"]
+    )
 
     for doc in docs:
         url = doc.get("webpage_url", "")
         webpage = webpages.get(url)
-        writer.writerow([
-            webpage.id if webpage else "",
-            webpage.title if webpage else "",
-            url,
-            doc.get("text_content", "")[:500],
-            ",".join(doc.get("keywords", [])),
-            doc.get("crawl_time", ""),
-        ])
+        writer.writerow(
+            [
+                webpage.id if webpage else "",
+                webpage.title if webpage else "",
+                url,
+                doc.get("text_content", "")[:500],
+                ",".join(doc.get("keywords", [])),
+                doc.get("crawl_time", ""),
+            ]
+        )
 
     output.seek(0)
     filename = f"contents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"

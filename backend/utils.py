@@ -1,10 +1,13 @@
 from typing import Any, Optional
 
+
 def success(data: Any = None, message: str = "success") -> dict:
     return {"code": 0, "message": message, "data": data}
 
+
 def error(message: str = "error", code: int = 1) -> dict:
     return {"code": code, "message": message, "data": None}
+
 
 def paginate(items: list, total: int, page: int, page_size: int) -> dict:
     return {
@@ -14,9 +17,11 @@ def paginate(items: list, total: int, page: int, page_size: int) -> dict:
         "items": items,
     }
 
+
 def iso(dt):
     """返回 ISO 8601 字符串，空值返回 None"""
     return dt.isoformat() if dt else None
+
 
 def build_mongo_filter(
     keyword: Optional[str] = None,

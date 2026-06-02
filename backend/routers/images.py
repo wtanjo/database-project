@@ -35,12 +35,14 @@ def list_images(
 
     items = []
     for doc in cursor:
-        items.append({
-            "id": str(doc["_id"]),
-            "webpage_url": doc.get("webpage_url", ""),
-            "image_url": doc.get("image_url", ""),
-            "description": doc.get("description", ""),
-            "crawl_time": doc.get("crawl_time", ""),
-        })
+        items.append(
+            {
+                "id": str(doc["_id"]),
+                "webpage_url": doc.get("webpage_url", ""),
+                "image_url": doc.get("image_url", ""),
+                "description": doc.get("description", ""),
+                "crawl_time": doc.get("crawl_time", ""),
+            }
+        )
 
     return success(paginate(items, total, page, page_size))

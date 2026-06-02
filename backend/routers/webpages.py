@@ -50,15 +50,17 @@ def list_webpages(
     items = []
     for wp in webpages:
         website = websites.get(wp.website_id)
-        items.append({
-            "id": wp.id,
-            "url": wp.url,
-            "title": wp.title or "",
-            "website_id": wp.website_id,
-            "domain": website.domain if website else "",
-            "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else None,
-            "status": wp.status,
-        })
+        items.append(
+            {
+                "id": wp.id,
+                "url": wp.url,
+                "title": wp.title or "",
+                "website_id": wp.website_id,
+                "domain": website.domain if website else "",
+                "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else None,
+                "status": wp.status,
+            }
+        )
 
     return success(paginate(items, total, page, page_size))
 
@@ -90,14 +92,18 @@ def get_webpage_detail(webpage_id: int, db: Session = Depends(get_db)):
         for d in image_docs
     ]
 
-    return success({
-        "id": webpage.id,
-        "url": url,
-        "title": webpage.title or "",
-        "crawl_time": webpage.crawl_time.isoformat() if webpage.crawl_time else None,
-        "content": content,
-        "images": images,
-    })
+    return success(
+        {
+            "id": webpage.id,
+            "url": url,
+            "title": webpage.title or "",
+            "crawl_time": webpage.crawl_time.isoformat()
+            if webpage.crawl_time
+            else None,
+            "content": content,
+            "images": images,
+        }
+    )
 
 
 @router.delete("/{webpage_id}")
