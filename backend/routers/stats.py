@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from db.mysql import get_db
-from db.mongo import contents_collection, images_collection
 from models.CrawlTask import CrawlTask
 from models.Website import Website
 from models.Webpage import Webpage
+from models.Image import Image
 from utils import success
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
@@ -13,17 +13,35 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 @router.get("")
 def get_stats(db: Session = Depends(get_db)):
-    """返回系统整体统计数据（任务数、网站数、内容数、图片数）。"""
+    """返回系统整体统计数据——全部从 MySQL 查询"""
     task_total = db.query(func.count(CrawlTask.id)).scalar()
-    task_running = db.query(func.count(CrawlTask.id)).filter(CrawlTask.status == "running").scalar()
-    task_completed = db.query(func.count(CrawlTask.id)).filter(CrawlTask.status == "completed").scalar()
-    task_failed = db.query(func.count(CrawlTask.id)).filter(CrawlTask.status == "failed").scalar()
+    task_running = (
+        db.query(func.count(CrawlTask.id))
+        .filter(CrawlTask.status == "running")
+        .scalar()
+    )
+    task_completed = (
+        db.query(func.count(CrawlTask.id))
+        .filter(CrawlTask.status == "completed")
+        .scalar()
+    )
+    task_failed = (
+        db.query(func.count(CrawlTask.id))
+        .filter(CrawlTask.status == "failed")
+        .scalar()
+    )
 
     website_total = db.query(func.count(Website.id)).scalar()
     webpage_total = db.query(func.count(Webpage.id)).scalar()
 
-    content_total = contents_collection.count_documents({})
-    image_total = images_collection.count_documents({})
+    # 有正文的网页数（替代 MongoDB contents_collection.count）
+    content_total = (
+        db.query(func.count(Webpage.id))
+        .filter(Webpage.text_content.isnot(None))
+        .scalar()
+    )
+    # 图片总数（替代 MongoDB images_collection.count）
+    image_total = db.query(func.count(Image.id)).scalar()
 
     # 按网站统计网页数（Top 10）
     top_websites = (
@@ -47,7 +65,6 @@ def get_stats(db: Session = Depends(get_db)):
         "contents": content_total,
         "images": image_total,
         "top_websites": [
-            {"domain": row.domain, "webpage_count": row.count}
-            for row in top_websites
+            {"domain": row.domain, "webpage_count": row.count} for row in top_websites
         ],
     })

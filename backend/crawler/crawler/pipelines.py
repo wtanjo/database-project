@@ -39,10 +39,14 @@ class DatabasePipeline:
             return item
 
         if isinstance(item, WebpageMetaItem):
-            self._process_mysql(item)
+            self._process_mysql_meta(item)
         elif isinstance(item, ContentItem):
+            # 双写：MongoDB（备份） + MySQL（主检索）
+            self._process_content(item)
             self.mongo_db["contents"].insert_one(dict(item))
         elif isinstance(item, ImageItem):
+            # 双写：MongoDB（备份） + MySQL（主检索）
+            self._process_image(item)
             self.mongo_db["images"].insert_one(dict(item))
         return item
 
@@ -56,7 +60,7 @@ class DatabasePipeline:
             )
             self.mysql_conn.commit()
 
-    def _process_mysql(self, item):
+    def _process_mysql_meta(self, item):
         url = item["url"]
         if len(url) > 768:
             spider = getattr(self, "_spider", None)
@@ -93,6 +97,47 @@ class DatabasePipeline:
             self.mysql_conn.commit()
             if affected > 0:
                 self.page_count += 1
+
+    def _process_content(self, item):
+        """将正文内容写回 MySQL Webpage 表（UPDATE）"""
+        url = item["webpage_url"][:768]
+        text = item.get("text_content", "")
+        # 取前 500 字符作为预览（截断到最后一个完整字符）
+        preview = text[:500] if text else ""
+        try:
+            self.mysql_conn.ping(reconnect=True)
+        except Exception:
+            pass
+        self.mysql_cursor.execute(
+            "UPDATE Webpage SET text_content=%s, text_preview=%s WHERE url=%s",
+            (text, preview, url),
+        )
+        self.mysql_conn.commit()
+
+    def _process_image(self, item):
+        """将图片信息写入 MySQL Image 表"""
+        url = item["webpage_url"][:768]
+        try:
+            self.mysql_conn.ping(reconnect=True)
+        except Exception:
+            pass
+        # 通过 webpage_url 查找 webpage_id，然后 INSERT
+        self.mysql_cursor.execute(
+            "SELECT id FROM Webpage WHERE url=%s",
+            (url,),
+        )
+        res = self.mysql_cursor.fetchone()
+        if res:
+            self.mysql_cursor.execute(
+                "INSERT IGNORE INTO Image (webpage_id, image_url, description, crawl_time) VALUES (%s, %s, %s, %s)",
+                (
+                    res[0],
+                    item.get("image_url", ""),
+                    item.get("description", ""),
+                    item.get("crawl_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                ),
+            )
+            self.mysql_conn.commit()
 
     def close_spider(self, spider):
         if self.task_id:

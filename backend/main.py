@@ -2,9 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import tasks, contents, images, websites, webpages, stats
 from db.mysql import Base, engine
-import models.CrawlTask
-import models.Website
-import models.Webpage
 
 Base.metadata.create_all(bind=engine)
 

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text
 from db.mysql import Base
 
 
@@ -20,3 +20,5 @@ class Webpage(Base):
     crawl_time = Column(DateTime, nullable=False)
     status = Column(Enum(Status, values_callable=lambda x: [e.value for e in x]), nullable=False, default=Status.PENDING)
     title = Column(String(512))
+    text_content = Column(Text, nullable=True)
+    text_preview = Column(String(500), nullable=True)
