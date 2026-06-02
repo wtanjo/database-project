@@ -8,30 +8,9 @@ from sqlalchemy.orm import Session
 from db.mysql import get_db
 from db.mongo import contents_collection, images_collection
 from models.Webpage import Webpage
-from utils import success, paginate
+from utils import build_mongo_filter, success, paginate
 
 router = APIRouter(prefix="/api/contents", tags=["contents"])
-
-
-def _build_mongo_filter(
-    keyword: Optional[str],
-    start_time: Optional[str],
-    end_time: Optional[str],
-    webpage_url: Optional[str] = None,
-) -> dict:
-    mongo_filter: dict = {}
-    if keyword:
-        mongo_filter["text_content"] = {"$regex": keyword, "$options": "i"}
-    if webpage_url:
-        mongo_filter["webpage_url"] = {"$regex": webpage_url, "$options": "i"}
-    if start_time or end_time:
-        time_filter: dict = {}
-        if start_time:
-            time_filter["$gte"] = start_time
-        if end_time:
-            time_filter["$lte"] = end_time
-        mongo_filter["crawl_time"] = time_filter
-    return mongo_filter
 
 
 @router.get("")
@@ -45,7 +24,7 @@ def list_contents(
     db: Session = Depends(get_db),
 ):
     """检索内容列表，整合 MySQL 网页元信息与 MongoDB 正文/图片。"""
-    mongo_filter = _build_mongo_filter(keyword, start_time, end_time, webpage_url)
+    mongo_filter = build_mongo_filter(keyword, start_time, end_time, webpage_url)
 
     total = contents_collection.count_documents(mongo_filter)
     cursor = (
@@ -55,14 +34,29 @@ def list_contents(
         .limit(page_size)
     )
 
+    docs = list(cursor)
+    urls = [doc.get("webpage_url", "") for doc in docs]
+
+    # 批量查询 MySQL——一次查询代替 N 次
+    webpages = {}
+    if urls:
+        results = db.query(Webpage).filter(Webpage.url.in_(urls)).all()
+        webpages = {wp.url: wp for wp in results}
+
+    # 批量查询 MongoDB 图片——一次查询代替 N 次
+    images_map = {}
+    if urls:
+        img_docs = images_collection.find(
+            {"webpage_url": {"$in": urls}},
+            {"webpage_url": 1, "image_url": 1}
+        )
+        for d in img_docs:
+            images_map.setdefault(d["webpage_url"], []).append(d["image_url"])
+
     items = []
-    for doc in cursor:
+    for doc in docs:
         url = doc.get("webpage_url", "")
-        # 从 MySQL 补充网页元信息
-        webpage = db.query(Webpage).filter(Webpage.url == url).first()
-        # 从 MongoDB 拿该 URL 的图片
-        img_docs = images_collection.find({"webpage_url": url}, {"image_url": 1})
-        images = [d["image_url"] for d in img_docs]
+        webpage = webpages.get(url)
 
         items.append({
             "webpage_id": webpage.id if webpage else None,
@@ -70,7 +64,7 @@ def list_contents(
             "url": url,
             "text_content": doc.get("text_content", ""),
             "keywords": doc.get("keywords", []),
-            "images": images,
+            "images": images_map.get(url, []),
             "crawl_time": doc.get("crawl_time", ""),
         })
 
@@ -86,16 +80,25 @@ def export_csv(
     db: Session = Depends(get_db),
 ):
     """将检索结果导出为 CSV 文件。"""
-    mongo_filter = _build_mongo_filter(keyword, start_time, end_time, webpage_url)
+    mongo_filter = build_mongo_filter(keyword, start_time, end_time, webpage_url)
     cursor = contents_collection.find(mongo_filter).sort("_id", -1).limit(5000)
+
+    docs = list(cursor)
+    urls = [doc.get("webpage_url", "") for doc in docs]
+
+    # 批量查询 MySQL——一次查询代替 N 次
+    webpages = {}
+    if urls:
+        results = db.query(Webpage).filter(Webpage.url.in_(urls)).all()
+        webpages = {wp.url: wp for wp in results}
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["webpage_id", "title", "url", "text_content", "keywords", "crawl_time"])
 
-    for doc in cursor:
+    for doc in docs:
         url = doc.get("webpage_url", "")
-        webpage = db.query(Webpage).filter(Webpage.url == url).first()
+        webpage = webpages.get(url)
         writer.writerow([
             webpage.id if webpage else "",
             webpage.title if webpage else "",

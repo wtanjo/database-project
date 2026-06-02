@@ -1,6 +1,6 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Optional
 from db.mysql import get_db
 from db.mongo import contents_collection, images_collection
 from models.Webpage import Webpage
@@ -20,12 +20,19 @@ def list_webpages(
     db: Session = Depends(get_db),
 ):
     """获取网页列表，支持按网站 ID、域名、URL 关键字过滤，分页返回。"""
-    query = db.query(Webpage).join(Website, Website.id == Webpage.website_id, isouter=True)
+    # 批量加载：一次性预取所有涉及的 Website，避免 N+1
+    website_ids = set()
+    if domain:
+        wids = db.query(Website.id).filter(Website.domain.like(f"%{domain}%")).all()
+        website_ids = {r[0] for r in wids}
+        if not website_ids:
+            return success(paginate([], 0, page, page_size))
 
+    query = db.query(Webpage)
     if website_id is not None:
         query = query.filter(Webpage.website_id == website_id)
-    if domain:
-        query = query.filter(Website.domain.like(f"%{domain}%"))
+    if website_ids:
+        query = query.filter(Webpage.website_id.in_(website_ids))
     if url_keyword:
         query = query.filter(Webpage.url.like(f"%{url_keyword}%"))
 
@@ -33,9 +40,16 @@ def list_webpages(
     total = query.count()
     webpages = query.offset((page - 1) * page_size).limit(page_size).all()
 
+    # 批量加载 Website——一次查询代替 N 次
+    wp_website_ids = {wp.website_id for wp in webpages if wp.website_id}
+    websites = {}
+    if wp_website_ids:
+        results = db.query(Website).filter(Website.id.in_(wp_website_ids)).all()
+        websites = {w.id: w for w in results}
+
     items = []
     for wp in webpages:
-        website = db.query(Website).filter(Website.id == wp.website_id).first()
+        website = websites.get(wp.website_id)
         items.append({
             "id": wp.id,
             "url": wp.url,
@@ -94,10 +108,15 @@ def delete_webpage(webpage_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="网页不存在")
 
     url = webpage.url
-    contents_collection.delete_many({"webpage_url": url})
-    images_collection.delete_many({"webpage_url": url})
-
+    # 先删 MySQL（如果有约束检查），再删 MongoDB
     db.delete(webpage)
     db.commit()
+
+    try:
+        contents_collection.delete_many({"webpage_url": url})
+        images_collection.delete_many({"webpage_url": url})
+    except Exception:
+        # MongoDB 删除失败不影响 MySQL 已提交的结果，记录日志即可
+        pass
 
     return success(message="删除成功")

@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { getWebsites } from '@/api/index'
 
 const router = useRouter()
@@ -63,6 +64,8 @@ async function fetchWebsites() {
       websites.value = res.data.items
       total.value = res.data.total
     }
+  } catch {
+    ElMessage.error('获取网站列表失败')
   } finally {
     loading.value = false
   }

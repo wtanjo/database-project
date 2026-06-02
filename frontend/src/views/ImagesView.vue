@@ -74,6 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
 import { getImages } from '@/api/index'
 
@@ -104,6 +105,8 @@ async function fetchImages() {
       images.value = res.data.items
       total.value = res.data.total
     }
+  } catch {
+    ElMessage.error('获取图片列表失败')
   } finally {
     loading.value = false
   }

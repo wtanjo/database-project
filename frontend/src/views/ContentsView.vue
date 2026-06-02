@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { getContents, exportContentsCSV } from '@/api/index'
 
@@ -109,6 +110,8 @@ async function fetchContents() {
       items.value = res.data.items
       total.value = res.data.total
     }
+  } catch {
+    ElMessage.error('获取内容列表失败')
   } finally {
     loading.value = false
   }

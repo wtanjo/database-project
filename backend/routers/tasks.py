@@ -1,5 +1,6 @@
 import os
 import subprocess
+from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.mysql import get_db
@@ -9,15 +10,29 @@ from utils import success, error, paginate
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
+def _validate_url(url: str) -> str:
+    """验证 URL 格式：必须有 http/https scheme 和有效 netloc"""
+    url = url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL 不能为空")
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="仅支持 http/https 协议的 URL")
+    if not parsed.netloc:
+        raise HTTPException(status_code=400, detail="URL 格式无效，缺少域名")
+    if len(url) > 2048:
+        raise HTTPException(status_code=400, detail="URL 长度不能超过 2048 字符")
+    return url
+
+
 @router.post("")
 async def create_task(url_data: dict, db: Session = Depends(get_db)):
     """提交爬取任务，写入 MySQL 后异步触发 Scrapy。"""
     # 兼容 target_url / url 两种字段名
-    url = url_data.get("target_url") or url_data.get("url")
-    if not url:
-        raise HTTPException(status_code=400, detail="URL 不能为空")
+    raw_url = url_data.get("target_url") or url_data.get("url") or ""
+    url = _validate_url(str(raw_url))
 
-    new_task = CrawlTask(target_url=url, status="pending")
+    new_task = CrawlTask(target_url=url, status=CrawlTask.Status.PENDING)
     db.add(new_task)
     db.commit()
     db.refresh(new_task)

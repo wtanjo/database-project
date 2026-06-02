@@ -79,6 +79,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { List, Monitor, Document, Picture } from '@element-plus/icons-vue'
 import { getStats } from '@/api/index'
 
@@ -147,6 +148,8 @@ async function fetchStats() {
   try {
     const res: any = await getStats()
     if (res.code === 0) stats.value = res.data
+  } catch {
+    ElMessage.error('获取统计数据失败')
   } finally {
     loading.value = false
   }

@@ -8,12 +8,17 @@ class GeneralSpider(scrapy.Spider):
     
     def __init__(self, start_url=None, task_id=None, *args, **kwargs):
         super(GeneralSpider, self).__init__(*args, **kwargs)
-        # --- 修改 1: 显式保存 start_url 供下面使用 ---
-        self.start_url = start_url 
-        self.task_id = task_id
-        
+        self.start_url = start_url
+        # Coerce task_id to int (Scrapy -a flag passes everything as string)
+        self.task_id = int(task_id) if task_id else None
+
         if start_url:
-            self.allowed_domains = [urlparse(start_url).netloc]
+            parsed = urlparse(start_url)
+            if not parsed.netloc:
+                self.logger.error(f"无法解析域名: {start_url}")
+                self.allowed_domains = []
+            else:
+                self.allowed_domains = [parsed.netloc]
 
     def start_requests(self):
         if self.start_url:
@@ -38,7 +43,10 @@ class GeneralSpider(scrapy.Spider):
         # 提取当前请求携带的 task_id
         current_task_id = response.meta.get('task_id')
 
-        if not response.headers.get('Content-Type', b'').startswith(b'text/html'):
+        # 检查 Content-Type：缺失时也继续处理（部分服务器不返回该头）
+        content_type = response.headers.get('Content-Type', b'')
+        if content_type and not content_type.startswith(b'text/html'):
+            self.logger.debug(f"跳过非 HTML 响应: {response.url} (Content-Type: {content_type})")
             return
 
         crawl_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -54,12 +62,16 @@ class GeneralSpider(scrapy.Spider):
         yield meta_item
 
         # 2. 提取正文：用 XPath 抓取 body 内所有可见文本节点，排除 script/style
-        #    这样无论内容在 <p>、<span>、<div> 还是其他标签内都能捕获
+        #    限制在 2MB 以内防止 MongoDB BSON 16MB 溢出
         text_nodes = response.xpath(
             '//body//text()[not(ancestor::script) and not(ancestor::style)]'
         ).getall()
         text_content = '\n'.join([t.strip() for t in text_nodes if t.strip()])
         if text_content:
+            MAX_TEXT = 2 * 1024 * 1024  # 2 MB
+            if len(text_content.encode('utf-8')) > MAX_TEXT:
+                text_content = text_content.encode('utf-8')[:MAX_TEXT].decode('utf-8', errors='ignore')
+                self.logger.warning(f"正文过长已截断: {response.url}")
             content_item = ContentItem()
             content_item['webpage_url'] = response.url
             content_item['text_content'] = text_content
@@ -79,11 +91,20 @@ class GeneralSpider(scrapy.Spider):
                 img_item['crawl_time'] = crawl_time
                 yield img_item
 
-        # --- 修改 3: 自动跟进链接时，必须手动传递 errback 和 meta ---
+        # 自动跟进链接（过滤无效 scheme）
+        INVALID_SCHEMES = {'mailto:', 'javascript:', 'tel:', 'ftp:', 'data:', 'file:'}
         for href in response.css('a::attr(href)').getall():
-            yield response.follow(
-                href, 
-                callback=self.parse, 
-                errback=self.errback_handler, # 必须重复指定
-                meta={'task_id': current_task_id} # 必须手动向下传递
+            href = href.strip()
+            if not href:
+                continue
+            lower = href.lower()
+            if any(lower.startswith(s) for s in INVALID_SCHEMES) or lower.startswith('#'):
+                continue
+            req = response.follow(
+                href,
+                callback=self.parse,
+                errback=self.errback_handler,
+                meta={'task_id': current_task_id}
             )
+            if req is not None:
+                yield req

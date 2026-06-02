@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Query
 from db.mongo import images_collection
-from utils import success, paginate
+from utils import build_mongo_filter, success, paginate
 
 router = APIRouter(prefix="/api/images", tags=["images"])
 
@@ -16,18 +16,14 @@ def list_images(
     page_size: int = Query(20, ge=1, le=200),
 ):
     """图片列表，支持按描述关键字、来源 URL、爬取时间过滤，分页返回。"""
-    mongo_filter: dict = {}
+    # 使用共享过滤器构建器；图片的 keyword 字段是 description，需要手动替换
+    mongo_filter = build_mongo_filter(
+        start_time=start_time,
+        end_time=end_time,
+        webpage_url=webpage_url,
+    )
     if keyword:
         mongo_filter["description"] = {"$regex": keyword, "$options": "i"}
-    if webpage_url:
-        mongo_filter["webpage_url"] = {"$regex": webpage_url, "$options": "i"}
-    if start_time or end_time:
-        time_filter: dict = {}
-        if start_time:
-            time_filter["$gte"] = start_time
-        if end_time:
-            time_filter["$lte"] = end_time
-        mongo_filter["crawl_time"] = time_filter
 
     total = images_collection.count_documents(mongo_filter)
     cursor = (

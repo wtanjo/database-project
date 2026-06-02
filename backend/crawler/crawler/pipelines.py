@@ -57,6 +57,19 @@ class DatabasePipeline:
             self.mysql_conn.commit()
 
     def _process_mysql(self, item):
+        url = item['url']
+        if len(url) > 768:
+            spider = getattr(self, '_spider', None)
+            logger = spider.logger if spider and hasattr(spider, 'logger') else None
+            if logger:
+                logger.warning(f"URL 超过 768 字符，已截断: {url[:80]}...")
+            url = url[:768]
+
+        try:
+            self.mysql_conn.ping(reconnect=True)
+        except Exception:
+            pass  # ping may fail if connection is fresh
+
         # 写入 Website（忽略重复）
         self.mysql_cursor.execute(
             "INSERT IGNORE INTO Website (domain, created_at) VALUES (%s, %s)",
@@ -74,7 +87,7 @@ class DatabasePipeline:
             self.mysql_cursor.execute(
                 """INSERT IGNORE INTO Webpage (url, website_id, crawl_time, status, title)
                    VALUES (%s, %s, %s, 'success', %s)""",
-                (item['url'][:768], website_id, item['crawl_time'], item.get('title', '')),
+                (url, website_id, item['crawl_time'], item.get('title', '')),
             )
             affected = self.mysql_cursor.rowcount
             self.mysql_conn.commit()
@@ -82,14 +95,33 @@ class DatabasePipeline:
                 self.page_count += 1
 
     def close_spider(self, spider):
-        if self.task_id and not self.error_occurred:
-            finish_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            self.mysql_cursor.execute(
-                "UPDATE CrawlTask SET status='completed', finished_at=%s, page_count=%s WHERE id=%s",
-                (finish_time, self.page_count, self.task_id),
-            )
-            self.mysql_conn.commit()
+        if self.task_id:
+            try:
+                if not self.error_occurred:
+                    if self.page_count == 0:
+                        # 没有爬到任何页面：可能是 dupefilter 拦截或站点无法访问
+                        finish_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        self.mysql_cursor.execute(
+                            "UPDATE CrawlTask SET status='failed', error_msg=%s, finished_at=%s, page_count=0 WHERE id=%s",
+                            ("未抓取到任何网页（可能是URL已爬取或站点无法访问）", finish_time, self.task_id),
+                        )
+                    else:
+                        finish_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        self.mysql_cursor.execute(
+                            "UPDATE CrawlTask SET status='completed', finished_at=%s, page_count=%s WHERE id=%s",
+                            (finish_time, self.page_count, self.task_id),
+                        )
+                    self.mysql_conn.commit()
+            except Exception as e:
+                spider.logger.error(f"close_spider 更新任务状态失败: {e}")
 
-        self.mysql_cursor.close()
-        self.mysql_conn.close()
-        self.mongo_client.close()
+        try:
+            self.mysql_cursor.close()
+            self.mysql_conn.close()
+        except Exception:
+            pass
+
+        try:
+            self.mongo_client.close()
+        except Exception:
+            pass

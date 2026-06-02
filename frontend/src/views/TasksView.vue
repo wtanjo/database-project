@@ -104,6 +104,8 @@ async function fetchTasks() {
       tasks.value = res.data.items
       total.value = res.data.total
     }
+  } catch {
+    ElMessage.error('获取任务列表失败')
   } finally {
     loading.value = false
   }
