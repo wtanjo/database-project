@@ -1,6 +1,6 @@
 import enum
 from sqlalchemy import Column, Integer, String, DateTime, Text, Enum
-from datetime import datetime
+from datetime import datetime, timezone
 from db.mysql import Base
 
 class Status(str, enum.Enum):
@@ -15,7 +15,7 @@ class CrawlTask(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     target_url = Column(String(2048), nullable=False)
     status = Column(Enum(Status, values_callable=lambda x: [e.value for e in x]), default=Status.PENDING, nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     finished_at = Column(DateTime, nullable=True)
     page_count = Column(Integer, default=0)
     error_msg = Column(Text, nullable=True)

@@ -79,7 +79,7 @@ def list_contents(
                 "text_content": wp.text_content or "",
                 "keywords": [],  # 暂未实现关键词提取
                 "images": images_map.get(wp.id, []),
-                "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else "",
+                "crawl_time": wp.crawl_time.isoformat() + 'Z' if wp.crawl_time else "",
             }
         )
 
@@ -109,7 +109,7 @@ def export_csv(
                 wp.title or "",
                 wp.url,
                 (wp.text_preview or "")[:500],
-                wp.crawl_time.isoformat() if wp.crawl_time else "",
+                wp.crawl_time.isoformat() + 'Z' if wp.crawl_time else "",
             ]
         )
 

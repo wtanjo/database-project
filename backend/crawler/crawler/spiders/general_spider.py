@@ -1,6 +1,6 @@
 import scrapy
 from urllib.parse import urlparse
-from datetime import datetime
+from datetime import datetime, timezone
 from crawler.items import WebpageMetaItem, ContentItem, ImageItem, TaskErrorItem
 
 
@@ -54,7 +54,7 @@ class GeneralSpider(scrapy.Spider):
             )
             return
 
-        crawl_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        crawl_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         domain = urlparse(response.url).netloc
 
         # 1. 提取元数据

@@ -40,7 +40,7 @@
       >
         <div class="content-header">
           <div class="content-title">{{ item.title || '（无标题）' }}</div>
-          <el-tag size="small" type="info">{{ item.crawl_time }}</el-tag>
+          <el-tag size="small" type="info">{{ item.crawl_time ? new Date(item.crawl_time).toLocaleString('zh-CN') : '—' }}</el-tag>
         </div>
         <a :href="item.url" target="_blank" class="content-url">{{ item.url }}</a>
         <p class="content-text">{{ truncate(item.text_content, 200) }}</p>

@@ -78,8 +78,8 @@ def list_tasks(
             "id": t.id,
             "target_url": t.target_url,
             "status": t.status,
-            "created_at": t.created_at.isoformat() if t.created_at else None,
-            "finished_at": t.finished_at.isoformat() if t.finished_at else None,
+            "created_at": t.created_at.isoformat() + 'Z' if t.created_at else None,
+            "finished_at": t.finished_at.isoformat() + 'Z' if t.finished_at else None,
             "page_count": t.page_count,
             "error_msg": t.error_msg or "",
         }

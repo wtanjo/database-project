@@ -55,7 +55,7 @@ def list_images(
                 "webpage_url": wps.get(img.webpage_id, ""),
                 "image_url": img.image_url,
                 "description": img.description or "",
-                "crawl_time": img.crawl_time.isoformat() if img.crawl_time else "",
+                "crawl_time": img.crawl_time.isoformat() + 'Z' if img.crawl_time else "",
             }
         )
 

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from datetime import datetime
+from datetime import datetime, timezone
 from db.mysql import Base
 
 
@@ -12,4 +12,4 @@ class Image(Base):
     )
     image_url = Column(String(2048), nullable=False)
     description = Column(String(1024))
-    crawl_time = Column(DateTime, default=datetime.now)
+    crawl_time = Column(DateTime, default=lambda: datetime.now(timezone.utc))

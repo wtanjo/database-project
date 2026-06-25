@@ -56,7 +56,7 @@ def list_webpages(
                 "title": wp.title or "",
                 "website_id": wp.website_id,
                 "domain": website.domain if website else "",
-                "crawl_time": wp.crawl_time.isoformat() if wp.crawl_time else None,
+                "crawl_time": wp.crawl_time.isoformat() + 'Z' if wp.crawl_time else None,
                 "status": wp.status,
             }
         )
@@ -77,24 +77,26 @@ def get_webpage_detail(webpage_id: int, db: Session = Depends(get_db)):
         content = {
             "text_content": webpage.text_content,
             "keywords": [],  # 暂未实现关键词提取
-            "crawl_time": webpage.crawl_time.isoformat() if webpage.crawl_time else "",
+            "crawl_time": webpage.crawl_time.isoformat() + 'Z'
+            if webpage.crawl_time
+            else "",
         }
 
-    # 图片从 Image 表查询
-    image_rows = db.query(Image).filter(Image.webpage_id == webpage_id).all()
-    images = [
-        {"image_url": img.image_url, "description": img.description or ""}
-        for img in image_rows
-    ]
+        # 图片从 Image 表查询
+        image_rows = db.query(Image).filter(Image.webpage_id == webpage_id).all()
+        images = [
+            {"image_url": img.image_url, "description": img.description or ""}
+            for img in image_rows
+        ]
 
-    return success(
-        {
-            "id": webpage.id,
-            "url": webpage.url,
-            "title": webpage.title or "",
-            "crawl_time": webpage.crawl_time.isoformat()
-            if webpage.crawl_time
-            else None,
+        return success(
+            {
+                "id": webpage.id,
+                "url": webpage.url,
+                "title": webpage.title or "",
+                "crawl_time": webpage.crawl_time.isoformat() + 'Z'
+                if webpage.crawl_time
+                else None,
             "content": content,
             "images": images,
         }

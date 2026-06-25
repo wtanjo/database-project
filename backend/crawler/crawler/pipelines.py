@@ -1,6 +1,6 @@
 import pymysql
 import pymongo
-from datetime import datetime
+from datetime import datetime, timezone
 from crawler.items import WebpageMetaItem, ContentItem, ImageItem, TaskErrorItem
 
 
@@ -53,7 +53,7 @@ class DatabasePipeline:
     def _handle_task_error(self, item):
         self.error_occurred = True
         if item["task_id"]:
-            finish_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            finish_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             self.mysql_cursor.execute(
                 "UPDATE CrawlTask SET status='failed', error_msg=%s, finished_at=%s WHERE id=%s",
                 (item["error_msg"][:2048], finish_time, item["task_id"]),
@@ -135,7 +135,7 @@ class DatabasePipeline:
                     item.get("image_url", ""),
                     item.get("description", ""),
                     item.get(
-                        "crawl_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        "crawl_time", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                     ),
                 ),
             )
@@ -147,7 +147,7 @@ class DatabasePipeline:
                 if not self.error_occurred:
                     if self.page_count == 0:
                         # 没有爬到任何页面：可能是 dupefilter 拦截或站点无法访问
-                        finish_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        finish_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                         self.mysql_cursor.execute(
                             "UPDATE CrawlTask SET status='failed', error_msg=%s, finished_at=%s, page_count=0 WHERE id=%s",
                             (
@@ -157,7 +157,7 @@ class DatabasePipeline:
                             ),
                         )
                     else:
-                        finish_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        finish_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                         self.mysql_cursor.execute(
                             "UPDATE CrawlTask SET status='completed', finished_at=%s, page_count=%s WHERE id=%s",
                             (finish_time, self.page_count, self.task_id),

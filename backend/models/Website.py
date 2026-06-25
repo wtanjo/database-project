@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from db.mysql import Base
 
 class Website(Base):
@@ -9,4 +9,4 @@ class Website(Base):
     domain = Column(String(255), nullable=False, unique=True)
     organization = Column(String(255))
     contact = Column(String(255))
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
