@@ -7,7 +7,7 @@ NEWSPIDER_MODULE = "crawler.spiders"
 # 反爬设置
 ROBOTSTXT_OBEY = False
 DOWNLOAD_DELAY = 1          # 请求间隔（秒）
-DEPTH_LIMIT = 4             # 爬取深度：0=起始页，1=一级链接，2=二级链接
+DEPTH_LIMIT = 2             # 爬取深度：0=起始页，1=一级链接，2=二级链接
 CLOSESPIDER_PAGECOUNT = 100 # 每次任务最多爬取 100 页，防止 Wikipedia 类站点无限扩散
 
 # 启用 Pipeline
