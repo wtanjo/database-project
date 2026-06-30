@@ -175,6 +175,8 @@ cd database-project
 docker compose up --build
 ```
 
+> 注意：Docker 构建过程中需要从外部拉取镜像和依赖包，网络环境可能会影响构建速度或导致失败。
+
 | 服务 | 地址 |
 |---|---|
 | 前端 | http://localhost:5173 |
