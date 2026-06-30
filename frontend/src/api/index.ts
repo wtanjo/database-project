@@ -73,3 +73,13 @@ export const deleteWebpage = (id: number) => http.delete(`/webpages/${id}`)
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 export const getStats = () => http.get('/stats')
+
+// ── Config ─────────────────────────────────────────────────────────────────────
+export const getConfig = () => http.get('/config')
+
+export const updateConfig = (data: {
+  download_delay?: number
+  depth_limit?: number
+  closespider_pagecount?: number
+  log_level?: string
+}) => http.put('/config', data)

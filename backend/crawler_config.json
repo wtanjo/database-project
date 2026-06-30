@@ -1,0 +1,6 @@
+{
+  "download_delay": 1.0,
+  "depth_limit": 2,
+  "closespider_pagecount": 100,
+  "log_level": "WARNING"
+}

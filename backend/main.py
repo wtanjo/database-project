@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import tasks, contents, images, websites, webpages, stats
+from routers import tasks, contents, images, websites, webpages, stats, config
 from db.mysql import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -20,6 +20,7 @@ app.include_router(images.router)
 app.include_router(websites.router)
 app.include_router(webpages.router)
 app.include_router(stats.router)
+app.include_router(config.router)
 
 
 @app.get("/")

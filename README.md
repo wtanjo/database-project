@@ -35,7 +35,9 @@ FastAPI 后端 (:8000)
   ├── GET    /api/webpages           → 网页列表（MySQL Webpage 表）
   ├── GET    /api/webpages/{id}/detail → 网页详情（MySQL Webpage + Image 表）
   ├── DELETE /api/webpages/{id}      → 级联删除（MySQL CASCADE + MongoDB 异步清理）
-  └── GET    /api/stats              → 统计数据（MySQL）
+  ├── GET    /api/stats              → 统计数据（MySQL）
+  ├── GET    /api/config             → 读取爬虫配置（MySQL）
+  └── PUT    /api/config             → 更新爬虫配置（MySQL）
 
 Scrapy 爬虫管道
   ├── WebpageMetaItem  → MySQL Website + Webpage
@@ -219,6 +221,8 @@ cd frontend && npm install && npm run dev
 | `GET` | `/api/webpages/{id}/detail` | **MySQL** | 网页正文 + 图片详情 |
 | `DELETE` | `/api/webpages/{id}` | MySQL + MongoDB | 级联删除 |
 | `GET` | `/api/stats` | **MySQL** | 系统统计 |
+| `GET` | `/api/config` | MySQL | 读取爬虫配置 |
+| `PUT` | `/api/config` | MySQL | 更新爬虫配置 |
 
 ### 检索接口示例
 
@@ -248,6 +252,7 @@ curl "http://localhost:8000/api/webpages/42/detail"
 | **图片管理** | `/images` | 网格展示，description LIKE 搜索，大图预览 |
 | **网页管理** | `/webpages` | 域名/URL 过滤，抽屉详情（正文高亮搜索 + 图片），级联删除 |
 | **网站管理** | `/websites` | 域名列表，点击跳转网页管理 |
+| **爬虫设置** | `/settings` | 爬虫参数配置（请求间隔、深度、最大页数、日志级别），保存后新任务生效 |
 
 ---
 
@@ -262,6 +267,8 @@ database-project/
 │   ├── requirements.txt
 │   ├── main.py                    # FastAPI 入口
 │   ├── utils.py                   # success/error/paginate 工具
+│   ├── config_manager.py          # 爬虫配置 JSON 读写
+│   ├── crawler_config.json        # 爬虫参数配置文件
 │   ├── db/
 │   │   ├── mysql.py               # SQLAlchemy 连接 + get_db
 │   │   └── mongo.py               # PyMongo 连接（备份用）
@@ -276,7 +283,8 @@ database-project/
 │   │   ├── images.py              # 图片检索（MySQL）
 │   │   ├── websites.py            # 网站列表
 │   │   ├── webpages.py            # 网页列表 + 详情 + 级联删除
-│   │   └── stats.py               # 统计数据
+│   │   ├── stats.py               # 统计数据
+│   │   ├── config.py              # 爬虫配置 CRUD
 │   └── crawler/
 │       └── crawler/
 │           ├── settings.py        # Scrapy 配置 + DB 连接
@@ -295,7 +303,8 @@ database-project/
             ├── ContentsView.vue
             ├── ImagesView.vue
             ├── WebsitesView.vue
-            └── WebpagesView.vue
+            ├── WebpagesView.vue
+            └── SettingsView.vue
 ```
 
 ---

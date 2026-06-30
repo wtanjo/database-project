@@ -11,6 +11,7 @@ import ContentsView from "./views/ContentsView.vue";
 import ImagesView from "./views/ImagesView.vue";
 import WebsitesView from "./views/WebsitesView.vue";
 import WebpagesView from "./views/WebpagesView.vue";
+import SettingsView from "./views/SettingsView.vue";
 
 const router = createRouter({
 	history: createWebHistory(),
@@ -25,6 +26,7 @@ const router = createRouter({
 				{ path: "images", component: ImagesView },
 				{ path: "websites", component: WebsitesView },
 				{ path: "webpages", component: WebpagesView },
+				{ path: "settings", component: SettingsView },
 			],
 		},
 	],

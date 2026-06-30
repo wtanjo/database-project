@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.mysql import get_db
 from models.CrawlTask import CrawlTask, Status as CrawlTaskStatus
+from config_manager import load_config
 from utils import success, error, paginate
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -37,6 +38,14 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_task)
 
+    config = load_config()
+    config_overrides = [
+        "-s", f"DOWNLOAD_DELAY={config['download_delay']}",
+        "-s", f"DEPTH_LIMIT={config['depth_limit']}",
+        "-s", f"CLOSESPIDER_PAGECOUNT={config['closespider_pagecount']}",
+        "-s", f"LOG_LEVEL={config['log_level']}",
+    ]
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     crawler_cwd = os.path.join(current_dir, "../crawler")
 
@@ -50,7 +59,7 @@ async def create_task(url_data: dict, db: Session = Depends(get_db)):
                 f"start_url={new_task.target_url}",
                 "-a",
                 f"task_id={new_task.id}",
-            ],
+            ] + config_overrides,
             cwd=crawler_cwd,
         )
     except Exception as e:

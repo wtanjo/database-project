@@ -36,6 +36,10 @@
           <el-icon><Link /></el-icon>
           <span>网页管理</span>
         </el-menu-item>
+        <el-menu-item index="/settings">
+          <el-icon><Setting /></el-icon>
+          <span>爬虫设置</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -54,7 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { DataAnalysis, List, Search, Picture, Monitor, Link } from '@element-plus/icons-vue'
+import { DataAnalysis, List, Search, Picture, Monitor, Link, Setting } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeRoute = computed(() => route.path)
@@ -66,6 +70,7 @@ const titleMap: Record<string, string> = {
   '/images': '图片管理',
   '/websites': '网站管理',
   '/webpages': '网页管理',
+  '/settings': '爬虫设置',
 }
 const pageTitle = computed(() => titleMap[route.path] || '爬虫管理系统')
 </script>
